@@ -1,0 +1,9 @@
+#!/bin/sh
+mkdir ldap2tinydns
+mkdir ldap2tinydns/env
+echo "#!/bin/sh" > ldap2tinydns/run
+echo "exec 2>&1" >> ldap2tinydns/run
+echo "exec envdir ./env softlimit -d250000 /usr/bin/ldap2dns -u 59" >> ldap2tinydns/run
+chmod 755 ldap2tinydns/run
+echo "/var/tinydns/root" > ldap2tinydns/env/TINYDNSDIR
+

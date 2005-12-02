@@ -1,0 +1,53 @@
+%define djbdns djbdns-1.02
+
+Summary: LDAP to DNS gateway.
+Name: ldap2dns
+Version: %VERSION%
+Release: %RELEASE%
+Copyright: GPL
+Group: Daemons/DNS
+Source: ldap2dns-%{version}.tar.gz
+Source1: http://cr.yp.to/djbdns/%{djbdns}.tar.gz
+BuildRoot: /var/tmp/%{name}-root
+Requires: openldap
+
+%description
+ldap2dns is a program to create DNS records directly from an LDAP database. It can
+be be used to replace the secondary name-server by a second primary one.
+ldap2dns helps to reduce all kind of administration overhead. No more flat file editing,
+no more zone file editing. After having installed ldap2dns, the administrator only has
+to access the LDAP database.
+If he desires he can add access control for each zone, create a webbased GUI and add
+all other kind of zone and resource record information without interfering with the DNS
+server.
+ldap2dns is designed to write binary data.cdb files used by tinydns, but also may be
+used to write .db-files used by named.
+
+%prep
+%setup -a1 -q
+
+%build
+make -C %{djbdns}
+make DJBDNSDIR="%{djbdns}" VERSION=%{version} RPM_OPT_FLAGS="$RPM_OPT_FLAGS"
+
+%install
+[ -n "%{buildroot}" -a "%{buildroot}" != / ] && rm -rf %{buildroot}
+make DJBDNSDIR="%{djbdns}" INSTALL_PREFIX=$RPM_BUILD_ROOT install
+
+%clean
+[ -n "%{buildroot}" -a "%{buildroot}" != / ] && rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root)
+/usr/bin/ldap2dns
+/usr/bin/ldap2dnsd
+/usr/bin/ldap2tinydns-conf
+%doc README.html 
+%doc import.pl
+%config /etc/openldap/dns.at.conf
+%config /etc/openldap/dns.oc.conf
+
+%changelog
+* Wed Dec 06 2000 Jacob Rief <jacob.rief@tiscover.com>
+- initial revision for version 0.2.0
+

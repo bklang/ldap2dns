@@ -1,0 +1,45 @@
+dn: ou=dns,o=myorg
+objectclass: organizationalUnit
+ou: dns
+userpassword: dnsadmin
+
+dn: cn=corp.local,ou=dns,o=myorg
+objectclass: DNSzone
+cn: corp.local
+DNSzonename: corp.local
+DNSserial: 12345
+DNSrefresh: 10800
+DNSretry: 3600
+DNSexpire: 3600000
+DNSminimum: 86400
+DNSadminmailbox: domainmaster.myorg
+DNSzonemaster: ldap.myorg
+
+dn: cn=mail,cn=corp.local,ou=dns,o=myorg
+objectclass:	DNSrrset
+cn:		mail
+DNScname:	mail
+DNStype:	mx
+DNSipaddr:	17.19.21.23
+
+dn: cn=ns1,cn=corp.local,ou=dns,o=myorg
+objectclass:	DNSrrset
+cn:		ns1
+DNScname:	ns1
+DNStype:	ns
+DNSipaddr:	17.19.23.24
+
+dn: cn=ns2,cn=corp.local,ou=dns,o=myorg
+objectclass:	DNSrrset
+cn:		ns2
+DNScname:	ns2
+DNStype:	ns
+DNSipaddr:	17.19.23.25
+
+dn: cn=www,cn=corp.local,ou=dns,o=myorg
+objectclass:	DNSrrset
+cn:		www
+DNSdomainname:	www
+DNStype:	a
+DNSipaddr:	17.19.23.30
+
