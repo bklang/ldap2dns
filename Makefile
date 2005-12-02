@@ -1,6 +1,6 @@
 # $Id: Makefile,v 1.22 2001/02/16 09:51:23 jrief Exp $ 
-VERSION=0.2.2
-RELEASE=2
+VERSION=0.2.3
+RELEASE=1
 CC=gcc -O2
 CFLAGS=$(INC) $(WITHTINYDNS) -DVERSION='"$(VERSION)"'
 OBJS=ldap2dns.o 
@@ -36,7 +36,7 @@ clean:
 
 tar: clean
 	cd ..; \
-	tar czf $(TARFILE) ldap2dns-$(VERSION) --exclude CVS
+	tar czf $(TARFILE) ldap2dns-$(VERSION) --exclude CVS --exclude DNSadmin
 
 $(SPECFILE): Specfile
 	sed -e 's#%VERSION%#$(VERSION)#g' \

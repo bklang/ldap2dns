@@ -1,13 +1,32 @@
 #!/bin/sh
+
 mkdir ldap2tinydns
 mkdir ldap2tinydns/env
+mkdir ldap2tinydns/log
+mkdir ldap2tinydns/log/main
+touch ldap2tinydns/log/status
+
 cat << EOF_run > ldap2tinydns/run
 #!/bin/sh
 exec 2>&1
 exec envdir ./env softlimit -d250000 /usr/bin/ldap2dns -e "cd /var/tinydns/root && /usr/bin/tinydns-data"
 EOF_run
+
+chmod +t ldap2tinydns
 chmod 755 ldap2tinydns/run
 echo "/var/tinydns/root" > ldap2tinydns/env/TINYDNSDIR
-echo "30" > ldap2tinydns/env/LDAP2DNS_UPDATE
-echo "DATA" > ldap2tinydns/env/LDAP2DNS_OUTPUT
+echo "60" > ldap2tinydns/env/LDAP2DNS_UPDATE
+echo "data" > ldap2tinydns/env/LDAP2DNS_OUTPUT
+
+cat << EOF_logrun > ldap2tinydns/log/run
+#!/bin/sh
+exec setuidgid nobody multilog t ./main
+EOF_logrun
+
+chown nobody.nobody ldap2tinydns/log/main
+chmod g+s ldap2tinydns/log/main
+chmod 755 ldap2tinydns/log/run
+chown nobody.nobody ldap2tinydns/log/status
+
+echo "To supervise ldap2dns do a symbolic link from /service onto ldap2dns"
 

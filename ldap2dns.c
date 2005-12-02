@@ -1,6 +1,6 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c,v 1.26 2001/02/27 10:08:31 jrief Exp $
+ * $Id: ldap2dns.c,v 1.27 2001/03/12 12:26:55 jrief Exp $
  * Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2 or later. See http://www.fsf.org for details
  */
@@ -50,13 +50,13 @@ static struct
 	char zonemaster[64];
 	char class[16];
 	char adminmailbox[64];
-	unsigned long serial;
-	unsigned long refresh;
-	unsigned long retry;
-	unsigned long expire;
-	unsigned long minimum;
+	char serial[12];
+	char refresh[12];
+	char retry[12];
+	char expire[12];
+	char minimum[12];
+	char ttl[12];
 	char timestamp[20];
-	int ttl;
 } zone;
 
 struct resourcerecord
@@ -68,9 +68,9 @@ struct resourcerecord
 	char ipaddr[256][32];
 	char cipaddr[32];
 	char cname[64];
+	char ttl[12];
 	char timestamp[20];
-	int ttl;
-	int preference;
+	char preference[12];
 #if defined DRAFT_RFC
 	char rr[1024];
 	char aliasedobjectname[256];
@@ -298,19 +298,19 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		if (tinyfile) {
 			if (znix==0) {
 				if (ipdx<=0 && rr->cipaddr[0]) {
-					fprintf(tinyfile, "&%s::%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "&%s::%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
 					if (rr->cname[0])
-						fprintf(tinyfile, "=%s:%s:%d:%s\n", rr->cname, rr->cipaddr, rr->ttl, rr->timestamp);
+						fprintf(tinyfile, "=%s:%s:%s:%s\n", rr->cname, rr->cipaddr, rr->ttl, rr->timestamp);
 					if (ipdx==0)
-						fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[0], rr->ttl, rr->timestamp);
+						fprintf(tinyfile, "+%s:%s:%s:%s\n", rr->cname, rr->ipaddr[0], rr->ttl, rr->timestamp);
 				} else if (ipdx<0)
-					fprintf(tinyfile, "&%s::%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "&%s::%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
 				else if (ipdx==0)
-					fprintf(tinyfile, "&%s:%s:%s:%d:%s\n", rr->dnsdomainname, rr->ipaddr[0], rr->cname, rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "&%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->ipaddr[0], rr->cname, rr->ttl, rr->timestamp);
 				else if (ipdx>0 && rr->cname[0])
-					fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "+%s:%s:%s:%s\n", rr->cname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
 			} else if (ipdx<=0) {
-				fprintf(tinyfile, "&%s::%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+				fprintf(tinyfile, "&%s::%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
 			}
 		}
 		if (namedzone) {
@@ -322,32 +322,32 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		if (tinyfile) {
 			if (znix==0) {
 				if (ipdx<=0 && rr->cipaddr[0]) {
-					fprintf(tinyfile, "@%s::%s:%d:%d:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "@%s::%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
 					if (rr->cname[0])
-						fprintf(tinyfile, "=%s:%s:%d:%s\n", rr->cname, rr->cipaddr, rr->ttl, rr->timestamp);
+						fprintf(tinyfile, "=%s:%s:%s:%s\n", rr->cname, rr->cipaddr, rr->ttl, rr->timestamp);
 					if (ipdx==0)
-						fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[0], rr->ttl, rr->timestamp);
+						fprintf(tinyfile, "+%s:%s:%s:%s\n", rr->cname, rr->ipaddr[0], rr->ttl, rr->timestamp);
 				} else if (ipdx<0)
-					fprintf(tinyfile, "@%s::%s:%d:%d:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "@%s::%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
 				else if (ipdx==0)
-					fprintf(tinyfile, "@%s:%s:%s:%d:%d:%s\n", rr->dnsdomainname, rr->ipaddr[0], rr->cname, rr->preference, rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "@%s:%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->ipaddr[0], rr->cname, rr->preference, rr->ttl, rr->timestamp);
 				else if (ipdx>0 && rr->cname[0])
-					fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
+					fprintf(tinyfile, "+%s:%s:%s:%s\n", rr->cname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
 			} else if (ipdx<=0) {
-				fprintf(tinyfile, "@%s::%s:%d:%d:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
+				fprintf(tinyfile, "@%s::%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
 			}
 		}
 		if (namedzone) {
-			fprintf(namedzone, "%s.\tIN MX\t%d %s.\n", rr->dnsdomainname, rr->preference, rr->cname);
+			fprintf(namedzone, "%s.\tIN MX\t%s %s.\n", rr->dnsdomainname, rr->preference, rr->cname);
 			if (ipdx>=0)
 				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
 		}
 	} else if ( strcasecmp(rr->type, "A")==0) {
 		if (tinyfile) {
 			if (ipdx<=0 && rr->cipaddr[0])
-				fprintf(tinyfile, "%s%s:%s:%d:%s\n", (znix==0 ? "=" : "+"), rr->dnsdomainname, rr->cipaddr, rr->ttl, rr->timestamp);
+				fprintf(tinyfile, "%s%s:%s:%s:%s\n", (znix==0 ? "=" : "+"), rr->dnsdomainname, rr->cipaddr, rr->ttl, rr->timestamp);
 			if (ipdx>=0)
-				fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->dnsdomainname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
+				fprintf(tinyfile, "+%s:%s:%s:%s\n", rr->dnsdomainname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
 		}
 		if (namedzone) {
 			if (ipdx<=0 && rr->cipaddr[0])
@@ -369,17 +369,17 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			strcpy(buf, rr->dnsdomainname);
 		}
 		if (tinyfile)
-			fprintf(tinyfile, "^%s:%s:%d:%s\n", buf, rr->cname, rr->ttl, rr->timestamp);
+			fprintf(tinyfile, "^%s:%s:%s:%s\n", buf, rr->cname, rr->ttl, rr->timestamp);
 		if (namedzone)
 			fprintf(namedzone, "%s.\tIN PTR\t%s.\n", buf, rr->cname);
 	} else if (strcasecmp(rr->type, "CNAME")==0) {
 		if (tinyfile)
-			fprintf(tinyfile, "C%s:%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+			fprintf(tinyfile, "C%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
 		if (namedzone)
 			fprintf(namedzone, "%s.\tIN CNAME\t%s.\n", rr->dnsdomainname, rr->cname);
 	} else if (strcasecmp(rr->type, "TXT")==0) {
 		if (tinyfile)
-			fprintf(tinyfile, "'%s:%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+			fprintf(tinyfile, "'%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
 		if (namedzone)
 			fprintf(namedzone, "%s.\tIN TXT\t%s.\n", rr->dnsdomainname, rr->cname);
 	}
@@ -402,8 +402,8 @@ static void parse_rr(struct resourcerecord* rr)
 			expand_domainname(rr->cname, word1, len);
 		}
 	} else if (strcasecmp(rr->type, "MX")==0) {
-		if (sscanf(word1, "%d", &rr->preference)!=1)
-			rr->preference = 0;
+		if (sscanf(word1, "%s", rr->preference)!=1)
+			rr->preference[0] = '\0';
 		if (sscanf(word2, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
 			sprintf(rr->ipaddr[0], "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 		} else {
@@ -450,9 +450,9 @@ static void read_resourcerecords(char* dn, int znix)
 		rr.type[0] = '\0';
 		rr.cname[0] = '\0';
 		rr.cipaddr[0] = '\0';
-		rr.ttl = time_now;
+		rr.ttl[0] = '\0';
 		rr.timestamp[0] = '\0';
-		rr.preference = 10;
+		rr.preference[0] = '\0';
 #if defined DRAFT_RFC
 		rr.aliasedobjectname[0] = '\0';
 		rr.rr[0] = '\0';
@@ -477,49 +477,51 @@ static void read_resourcerecords(char* dn, int znix)
 						if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
 					} else if (strcasecmp(attr, "DNSclass")==0) {
-						if (sscanf(bvals[0]->bv_val, "%16s", &rr.class)!=1)
+						if (sscanf(bvals[0]->bv_val, "%16s", rr.class)!=1)
 							rr.class[0] = '\0';
-						if (options.ldifname[0])
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, rr.class);
 					} else if (strcasecmp(attr, "DNStype")==0) {
-						if (sscanf(bvals[0]->bv_val, "%16s", &rr.type)!=1)
+						if (sscanf(bvals[0]->bv_val, "%16s", rr.type)!=1)
 							rr.type[0] = '\0';
-						if (options.ldifname[0])
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, rr.type);
 					} else if (strcasecmp(attr, "DNSipaddr")==0) {
 						int ip[4];
 						for (ipaddresses = 0; bvals[ipaddresses] && ipaddresses<256; ipaddresses++) {
 							rr.ipaddr[ipaddresses][0] = '\0';
-							if (sscanf(bvals[ipaddresses]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4)
+							if (sscanf(bvals[ipaddresses]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
 								sprintf(rr.ipaddr[ipaddresses], "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-							if (options.ldifname[0])
-								fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
+								if (options.ldifname[0])
+									fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
+							}
 						}
 					} else if (strcasecmp(attr, "DNScipaddr")==0) {
 						int ip[4];
-						if (sscanf(bvals[0]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4)
+						if (sscanf(bvals[0]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
 							sprintf(rr.cipaddr, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
+							if (options.ldifname[0])
+								fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
+						}
 					} else if (strcasecmp(attr, "DNScname")==0) {
 						if (!expand_domainname(rr.cname, bvals[0]->bv_val, bvals[0]->bv_len))
 							rr.cname[0] = '\0';
-						if (options.ldifname[0])
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
 					} else if (strcasecmp(attr, "DNSttl")==0) {
-						if (sscanf(bvals[0]->bv_val, "%d", &rr.ttl)!=1)
-							rr.ttl = time_now;
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, rr.ttl);
+						if (sscanf(bvals[0]->bv_val, "%12s", rr.ttl)!=1)
+							rr.ttl[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, rr.ttl);
 					} else if (strcasecmp(attr, "DNStimestamp")==0) {
 						if (sscanf(bvals[0]->bv_val, "%16s", &rr.timestamp)!=1)
 							rr.timestamp[0] = '\0';
-						if (options.ldifname[0])
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, rr.timestamp);
 					} else if (strcasecmp(attr, "DNSpreference")==0) {
-						if (sscanf(bvals[0]->bv_val, "%d", &rr.preference)!=1)
-							rr.preference = 10;
-						if (options.ldifname[0])
+						if (sscanf(bvals[0]->bv_val, "%s", rr.preference)!=1)
+							rr.preference[0] = '\0';
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
 					}
 #if defined DRAFT_RFC
@@ -530,7 +532,7 @@ static void read_resourcerecords(char* dn, int znix)
 					} else if (strcasecmp(attr, "DNSaliasedobjectname")==0) {
 						if (sscanf(bvals[0]->bv_val, "%256s", rr.aliasedobjectname)!=1)
 							rr.aliasedobjectname[0] = '\0';
-						if (options.ldifname[0])
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, rr.aliasedobjectname);
 					} else if (strcasecmp(attr, "DNSmacaddress")==0) {
 					}
@@ -568,9 +570,10 @@ static void write_zone(void)
 	char soa[20];
 
 	if (tinyfile) {
-		fprintf(tinyfile, "Z%s:%s:%s:%d:%d:%d:%d:%d:%d:%s\n", zone.domainname,
-		    zone.zonemaster, zone.adminmailbox, zone.serial, zone.refresh, zone.retry,
-		    zone.expire, zone.minimum, zone.ttl, zone.timestamp);
+		fprintf(tinyfile, "Z%s:%s:%s:%s:%s:%s:%s:%s:%s:%s\n",
+		    zone.domainname, zone.zonemaster, zone.adminmailbox,
+		    zone.serial, zone.refresh, zone.retry, zone.expire,
+		    zone.minimum, zone.ttl, zone.timestamp);
 	}
 	if (namedmaster) {
 		fprintf(namedmaster, "zone \"%s\" %s {\n\ttype master;\n\tfile \"%s.db\";\n};\n",
@@ -578,13 +581,16 @@ static void write_zone(void)
 	}
 	if (namedzone) {
 		fprintf(namedzone, "# Automatically generated by ldap2dns - DO NOT EDIT!\n");
-		fprintf(namedzone, "$TTL %d\n", (zone.ttl>0) ? zone.ttl : 3600);
+		if (zone.ttl[0])
+			fprintf(namedzone, "$TTL %s\n", zone.ttl);
+		else
+			fprintf(namedzone, "$TTL 3600\n");
 		fprintf(namedzone, "%s. IN SOA ", zone.domainname);
 		len = strlen(zone.zonemaster);
 		fprintf(namedzone, (zone.zonemaster[len-1]=='.') ? "%s " : "%s. ", zone.zonemaster);
 		len = strlen(zone.adminmailbox);
 		fprintf(namedzone, (zone.adminmailbox[len-1]=='.') ? "%s " : "%s. ", zone.adminmailbox);
-		fprintf(namedzone, "(\n\t%d\t; Serial\n\t%d\t; Refresh\n\t%d\t; Retry\n\t%d\t; Expire\n\t%d )\t; Minimum\n", zone.serial, zone.refresh, zone.retry, zone.expire, zone.minimum); 
+		fprintf(namedzone, "(\n\t%s\t; Serial\n\t%s\t; Refresh\n\t%s\t; Retry\n\t%s\t; Expire\n\t%s )\t; Minimum\n", zone.serial, zone.refresh, zone.retry, zone.expire, zone.minimum); 
 	}
 	if (options.ldifname[0])
 		fprintf(ldifout, "\n");
@@ -642,12 +648,12 @@ static void read_dnszones(void)
 		char ldif0;
 
 		strncpy(zone.class, "IN", 3);
-		zone.serial = time_now;
-		zone.refresh = 10800;
-		zone.retry = 3600;
-		zone.expire = 604800;
-		zone.minimum = 86400;
-		zone.ttl = time_now;
+		zone.serial[0] = '\0';
+		zone.refresh[0] = '\0';
+		zone.retry[0] = '\0';
+		zone.expire[0] = '\0';
+		zone.minimum[0] = '\0';
+		zone.ttl[0] = '\0';
 		zone.timestamp[0] = '\0';
 		dn = ldap_get_dn(ldap_con, m);
 		if (options.ldifname[0])
@@ -666,46 +672,53 @@ static void read_dnszones(void)
 						for (zonenames = 0; bvals[zonenames] && zonenames<256; zonenames++) {
 							if (sscanf(bvals[zonenames]->bv_val, "%64s", &zdn[zonenames])!=1)
 								zdn[zonenames][0] = '\0';
-							if (options.ldifname[0])
+							else if (options.ldifname[0])
 								fprintf(ldifout, "%s: %s\n", attr, zdn[zonenames]);
 						}
 					} else if (strcasecmp(attr, "DNSserial")==0) {
-						sscanf(bvals[0]->bv_val, "%u", &zone.serial);
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, zone.serial);
+						if (sscanf(bvals[0]->bv_val, "%12s", zone.serial)!=1)
+							zone.serial[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, zone.serial);
 					} else if (strcasecmp(attr, "DNSrefresh")==0) {
-						sscanf(bvals[0]->bv_val, "%u", &zone.refresh);
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, zone.refresh);
+						if (sscanf(bvals[0]->bv_val, "%12s", zone.refresh)!=1)
+							zone.refresh[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, zone.refresh);
 					} else if (strcasecmp(attr, "DNSretry")==0) {
-						sscanf(bvals[0]->bv_val, "%u", &zone.retry);
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, zone.retry);
+						if (sscanf(bvals[0]->bv_val, "%12s", zone.retry)!=1)
+							zone.retry[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, zone.retry);
 					} else if (strcasecmp(attr, "DNSexpire")==0) {
-						sscanf(bvals[0]->bv_val, "%u", &zone.expire);
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, zone.expire);
+						if (sscanf(bvals[0]->bv_val, "%12s", zone.expire)!=1)
+							zone.expire[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, zone.expire);
 					} else if (strcasecmp(attr, "DNSminimum")==0) {
-						sscanf(bvals[0]->bv_val, "%u", &zone.minimum);
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, zone.minimum);
+						if (sscanf(bvals[0]->bv_val, "%12s", zone.minimum)!=1)
+							zone.minimum[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, zone.minimum);
 					} else if (strcasecmp(attr, "DNSadminmailbox")==0) {
-						sscanf(bvals[0]->bv_val, "%64s", zone.adminmailbox);
-						if (options.ldifname[0])
+						if (sscanf(bvals[0]->bv_val, "%64s", zone.adminmailbox)!=1)
+							zone.adminmailbox[0] = '\0';
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, zone.adminmailbox);
 					} else if (strcasecmp(attr, "DNSzonemaster")==0) {
-						sscanf(bvals[0]->bv_val, "%64s", zone.zonemaster);
-						if (options.ldifname[0])
+						if (sscanf(bvals[0]->bv_val, "%64s", zone.zonemaster)!=1)
+							zone.zonemaster[0] = '\0';
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, zone.zonemaster);
 					} else if (strcasecmp(attr, "DNSttl")==0) {
-						if (sscanf(bvals[0]->bv_val, "%d", &zone.ttl)!=1)
-							zone.ttl = time_now;
-						if (options.ldifname[0])
-							fprintf(ldifout, "%s: %d\n", attr, zone.ttl);
+						if (sscanf(bvals[0]->bv_val, "%12s", zone.ttl)!=1)
+							zone.ttl[0] = '\0';
+						else if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, zone.ttl);
 					} else if (strcasecmp(attr, "DNStimestamp")==0) {
-						if (sscanf(bvals[0]->bv_val, "%16s", &zone.timestamp)!=1)
+						if (sscanf(bvals[0]->bv_val, "%16s", zone.timestamp)!=1)
 							zone.timestamp[0] = '\0';
-						if (options.ldifname[0])
+						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, zone.timestamp);
 					}
 				}

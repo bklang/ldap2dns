@@ -1,6 +1,11 @@
-Version 0.2.3
+Version 0.2.4 (todo)
 + Check for next availabe server in /etc/ldap.conf
   if first one is unavialable.
+
+Version 0.2.3
+- Replaced integer variables for DNSserial, DNSttl etc. by strings
+  to allow better default handling by tinydns-data.
+- ldap2dns now writes logfiles.
 
 Version 0.2.2
 - Tested with djbdns-1.05
