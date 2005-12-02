@@ -1,18 +1,12 @@
-# ldap2dns Makefile 
-VERSION=0.2.0
-RELEASE=1
-WITHTINYDNS=-DWITH_TINYDNS
+# $Id: Makefile,v 1.22 2001/02/16 09:51:23 jrief Exp $ 
+VERSION=0.2.2
+RELEASE=2
 CC=gcc -O2
-DJBDNSDIR=../djbdns-1.02
-INC=-I$(DJBDNSDIR)
 CFLAGS=$(INC) $(WITHTINYDNS) -DVERSION='"$(VERSION)"'
 OBJS=ldap2dns.o 
 LIBS=-lldap -llber -lresolv
 LD=gcc 
 LDFLAGS=
-ALIBS=$(DJBDNSDIR)/dns.a $(DJBDNSDIR)/env.a $(DJBDNSDIR)/libtai.a \
-    $(DJBDNSDIR)/cdb.a $(DJBDNSDIR)/alloc.a $(DJBDNSDIR)/buffer.a \
-    $(DJBDNSDIR)/unix.a $(DJBDNSDIR)/byte.a 
 INSTALL_PREFIX=
 PREFIXDIR=$(INSTALL_PREFIX)/usr
 LDAPCONFDIR=$(INSTALL_PREFIX)/etc/openldap
@@ -21,8 +15,8 @@ SPECFILE=ldap2dns.spec
 
 all: ldap2dns
 
-ldap2dns: $(OBJS) $(LIBS) $(ALIBS)
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(ALIBS) $(LIBS)
+ldap2dns: $(OBJS) $(LIBS) 
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 	ln -f ldap2dns ldap2dnsd
 
 ldap2dns.o: ldap2dns.c
@@ -38,7 +32,7 @@ install: all
 	install -o root -g root -m 644 dns.oc.conf $(LDAPCONFDIR)/
 
 clean:
-	rm -f $(OBJS) ldap2dns ldap2dnsd data* $(SPECFILE)
+	rm -f $(OBJS) ldap2dns ldap2dnsd data* *.db $(SPECFILE)
 
 tar: clean
 	cd ..; \

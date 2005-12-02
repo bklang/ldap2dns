@@ -1,6 +1,6 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c,v 1.20 2000/12/12 09:48:07 jrief Exp $
+ * $Id: ldap2dns.c,v 1.26 2001/02/27 10:08:31 jrief Exp $
  * Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2 or later. See http://www.fsf.org for details
  */
@@ -15,44 +15,17 @@
 
 #define UPDATE_INTERVALL 59
 #define LDAP_CONF "/etc/openldap/ldap.conf"
-
-#if defined WITH_TINYDNS
-# include "uint16.h"
-# include "uint32.h"
-# include "str.h"
-# include "byte.h"
-# include "fmt.h"
-# include "ip4.h"
-# include "exit.h"
-# include "readwrite.h"
-# include "buffer.h"
-# include "strerr.h"
-# include "getln.h"
-# include "cdb_make.h"
-# include "stralloc.h"
-# include "open.h"
-# include "dns.h"
-
-int fdcdb;
-struct cdb_make cdb;
-buffer b;
-char bspace[1024];
-static stralloc key;
-static stralloc result;
-static char* dottemp1;
-static char* dottemp2;
-static char tinydns_datafile[256];
-static char tinydns_tempfile[256];
-
-#endif
+#define OUTPUT_DATA 1
+#define OUTPUT_DB 2
 
 static char tinydns_textfile[256];
+static char tinydns_texttemp[256];
 static LDAP* ldap_con;
-static FILE* bindfile;
+static FILE* namedmaster;
+static FILE* namedzone;
 static FILE* tinyfile;
 static FILE* ldifout;
 static time_t time_now;
-static int autoreverse;
 static char* const* main_argv;
 static int main_argc;
 
@@ -75,14 +48,15 @@ static struct
 {
 	char domainname[64];
 	char zonemaster[64];
+	char class[16];
 	char adminmailbox[64];
 	unsigned long serial;
 	unsigned long refresh;
 	unsigned long retry;
 	unsigned long expire;
 	unsigned long minimum;
+	char timestamp[20];
 	int ttl;
-	char timestamp[16];
 } zone;
 
 struct resourcerecord
@@ -92,9 +66,10 @@ struct resourcerecord
 	char class[16];
 	char type[16];
 	char ipaddr[256][32];
+	char cipaddr[32];
 	char cname[64];
+	char timestamp[20];
 	int ttl;
-	char timestamp[16];
 	int preference;
 #if defined DRAFT_RFC
 	char rr[1024];
@@ -116,6 +91,7 @@ static struct
 	unsigned int output;
 	int verbose;
 	char ldifname[128];
+	char exec_command[128];
 } options;
 
 
@@ -129,96 +105,46 @@ static void die_exit(const char* message)
 }
 
 
-#if defined WITH_TINYDNS
-
-static void rr_add(char *buf, unsigned int len)
-{
-	if (!stralloc_catb(&result, buf, len)) die_exit(0);
-}
-
-static void rr_addname(char *d)
-{
-	rr_add(d,dns_domain_length(d));
-}
-
-static void rr_start(char type[2], unsigned long ttl, char ttd[8])
-{
-	char buf[4];
-	if (!stralloc_copyb(&result, type,2)) die_exit(0);
-	rr_add("=",1);
-	uint32_pack_big(buf, ttl);
-	rr_add(buf,4);
-	rr_add(ttd,8);
-}
-
-static void rr_finish(char *owner)
-{
-	if (byte_equal(owner,2,"\1*")) {
-		owner += 2;
-		result.s[2] = '*';
-	}
-	if (!stralloc_copyb(&key, owner, dns_domain_length(owner))) die_exit(0);
-		case_lowerb(key.s, key.len);
-	if (cdb_make_add(&cdb, key.s, key.len, result.s, result.len) == -1)
-		die_exit("Unable to create 'data.tmp'");
-}
-
-
-#endif
-
 static void set_datadir(void)
 {
 	char* ev = getenv("TINYDNSDIR");
 	int len;
 
-#if defined WITH_TINYDNS
-	tinydns_datafile[0] = 0;
-	tinydns_tempfile[0] = 0;
-#endif
-	tinydns_textfile[0] = 0;
+	tinydns_textfile[0] = '\0';
+	tinydns_texttemp[0] = '\0';
 	if (ev && (len = strlen(ev))<240) {
-#if defined WITH_TINYDNS
-		strncpy(tinydns_datafile, ev, 240);
-		strncpy(tinydns_tempfile, ev, 240);
-#endif
 		strncpy(tinydns_textfile, ev, 240);
+		strncpy(tinydns_texttemp, ev, 240);
 		if (ev[len-1]!='/') {
-#if defined WITH_TINYDNS
-			tinydns_datafile[len] = '/';
-			tinydns_tempfile[len] = '/';
-#endif
 			tinydns_textfile[len] = '/';
+			tinydns_texttemp[len] = '/';
 		}
 	}
-#if defined WITH_TINYDNS
-	strcat(tinydns_datafile, "data.cdb");
-	strcat(tinydns_tempfile, "data.tmp");
-#endif
 	strcat(tinydns_textfile, "data");
+	strcat(tinydns_texttemp, "data.temp");
 }
 
 
 static void print_usage(void)
 {
 	print_version();
-	printf("usage: ldap2dns[d] [-D binddn] [-b searchbase] [-o 0|1|2|4] [-h host] [-p port] [-w password] [-L[filename]] [-u numsecs] [-v[v]] [-V]\n\n");
+	printf("usage: ldap2dns[d] [-D binddn] [-b searchbase] [-o data|db] [-h host] [-p port] [-w password] [-L[filename]] [-u numsecs] [-v[v]] [-V]\n\n");
 	printf("ldap2dns connects to an LDAP server reads the DNS information stored in objectclasses\n"
 		"\t\tDNSzone and DNSrrset and writes a file to be used by tinydns or named.\n"
 		"\t\tldap2dnsd starts as background-job and continouesly updates DNS information.\n");
 	printf("options:\n");
 	printf("    -D binddn\tUse the distinguished name binddn to bind to the LDAP directory\n");
 	printf("    -w bindpasswd\tUse bindpasswd as the password for simple authentication\n");
-	printf("    -b use searchbase as the starting point for the search instead of the default\n");
-	printf("    -o 1|2|4\toutput format number or any binary or-ed combination. Defaults to 1\n");
-	printf("\t1: generate a binary file named 'data.cdb' to be used directly by tinydns\n");
-	printf("\t2: generate a text file named 'data' to be parsed by tinydns-data\n");
-	printf("\t4: for each zone generate a file named '<zonename>.db' to be used by named\n");
-	printf("    -L[filename] print output in LDIF format for reimport\n");
-	printf("    -h host\thostname of LDAP server, defaults to localhost\n");
-	printf("    -p port\tportnumber to connect to LDAP server, defaults to %d\n", LDAP_PORT);
+	printf("    -b Use searchbase as the starting point for the search instead of the default\n");
+	printf("    -o data\tGenerate a \"data\" file to be processed by tinydns-data\n");
+	printf("    -o db\tFor each zone generate a \"<zonename>.db\" file to be used by named\n");
+	printf("    -L[filename] Print output in LDIF format for reimport\n");
+	printf("    -h host\tHostname of LDAP server, defaults to localhost\n");
+	printf("    -p port\tPortnumber to connect to LDAP server, defaults to %d\n", LDAP_PORT);
 	printf("    -u numsecs\tUpdate DNS data after numsecs. Defaults to %d if started as daemon.\n\t\t"
 		"Important notice: data.cdb is rewritten only after DNSserial in DNSzone is increased.\n",
 		UPDATE_INTERVALL);
+	printf("    -e \"exec-cmd\" This command is executed after ldap2dns regenerated its data files\n");
 	printf("    -v\t\trun in verbose mode\n");
 	printf("    -vv\t\teven more verbose\n");
 	printf("    -V\t\tprint version and exit\n\n");
@@ -229,8 +155,9 @@ static int parse_options()
 	extern char* optarg;
 	extern int optind, opterr, optopt;
 	char buf[256], value[128];
-	int c;
+	int len;
 	FILE* ldap_conf;
+	char* ev;
 
 	strcpy(options.searchbase, "");
 	strcpy(options.hostname, "localhost");
@@ -239,33 +166,46 @@ static int parse_options()
 		while(fgets(buf, 256, ldap_conf)!=0) {
 			if (sscanf(buf, "BASE %128s", value)==1)
 				strcpy(options.searchbase, value);
-			if (sscanf(buf, "HOST %128s:%d", value, &c)==2) {
+			if (sscanf(buf, "HOST %128s:%d", value, &len)==2) {
 				strcpy(options.hostname, value);
-				options.port = c;
+				options.port = len;
 			} else if (sscanf(buf, "HOST %128s", value)==1)
 				strcpy(options.hostname, value);
-			if (sscanf(buf, "PORT %d", &c)==1)
-				options.port = c;
+			if (sscanf(buf, "PORT %d", &len)==1)
+				options.port = len;
 		}
 		fclose(ldap_conf);
 	}
 	strcpy(options.binddn, "");
-	options.output = 1;
+	len = strlen(main_argv[0]);
+	if (strcmp(main_argv[0]+len-9, "ldap2dnsd")==0) {
+		options.is_daemon = 1;
+		options.update_iv = UPDATE_INTERVALL;
+	} else {
+		options.is_daemon = 0;
+		options.update_iv = 0;
+	}
+	ev = getenv("LDAP2DNS_UPDATE");
+	if (ev && sscanf(ev, "%d", &len)==1 && len>0)
+		options.update_iv = len;
+	options.output = 0;
+	ev = getenv("LDAP2DNS_OUTPUT");
+	if (ev) {
+		if (strcmp(ev, "data")==0)
+			options.output = OUTPUT_DATA;
+		else if (strcmp(ev, "db")==0)
+			options.output = OUTPUT_DB;
+	}
 	options.verbose = 0;
 	options.ldifname[0] = '\0';
-	c = strlen(main_argv[0]);
-	if (strcmp(main_argv[0]+c-9, "ldap2dnsd")==0)
-		options.is_daemon = 1;
-	else
-		options.is_daemon = 0;
-	options.update_iv = 59;
 	strcpy(options.password, "");
-	while ( (c = getopt(main_argc, main_argv, "b:D:h:o:p:u:Vw:v::L::"))>0 ) {
+	strcpy(options.exec_command, "");
+	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:o:p:u:Vw:v::L::"))>0 ) {
 		if (optarg && strlen(optarg)>127) {
 			fprintf(stderr, "argument %s too long\n", optarg);
 			continue;
 		}
-		switch (c) {
+		switch (len) {
 		    case 'b':
 			strcpy(options.searchbase, optarg);
 			break;
@@ -273,7 +213,6 @@ static int parse_options()
 			if (sscanf(optarg, "%d", &options.update_iv)!=1)
 				options.update_iv = UPDATE_INTERVALL;
 			if (options.update_iv<=0) options.update_iv = 1;
-			if (options.is_daemon==0) options.is_daemon = 2; /* foreground daemon */
 			break;
 		    case 'D':
 			strcpy(options.binddn, optarg);
@@ -288,8 +227,10 @@ static int parse_options()
 				strcpy(options.ldifname, optarg);
 			break;
 		    case 'o':
-			if (sscanf(optarg, "%d", &options.output)!=1)
-				options.output = 0;
+			if (strcmp(optarg, "data")==0)
+				options.output |= OUTPUT_DATA;
+			else if (strcmp(optarg, "db")==0)
+				options.output |= OUTPUT_DB;
 			break;
 		    case 'p':
 			if (sscanf(optarg, "%d", &options.port)!=1)
@@ -307,11 +248,16 @@ static int parse_options()
 		    case 'w':
 			strcpy(options.password, optarg);
 			break;
+		    case 'e':
+			strcpy(options.exec_command, optarg);
+			break;
 		    default:
 			print_usage();
 			exit(1);
 		}
 	}
+	if (options.is_daemon==0 && options.update_iv>0)
+		options.is_daemon = 2; /* foreground daemon */
 }
 
 
@@ -341,86 +287,74 @@ static int expand_reverse(char target[64], const char* source)
 }
 
 
-static void write_rr(struct resourcerecord* rr, int ipdx)
+static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 {
 	char ip[4];
 	char buf[4];
 
 	if (strcasecmp(rr->class, "IN"))
 		return;
-	
-#if defined WITH_TINYDNS
-	if (options.output&1) {
-		int dnsdn_len = strlen(rr->dnsdomainname);
-		int cname_len = strlen(rr->cname);
-		if (!dns_domain_fromdot(&dottemp1, rr->dnsdomainname, dnsdn_len)) die_exit(0);
-		if (!dns_domain_fromdot(&dottemp2, rr->cname, cname_len)) die_exit(0);
-	}
-#endif
-
 	if (strcasecmp(rr->type, "NS")==0) {
-		if (tinyfile)
-			fprintf(tinyfile, "&%s:%s:%s:%d:%s\n", rr->dnsdomainname, (ipdx>=0 ? rr->ipaddr[ipdx] : ""), rr->cname, rr->ttl, rr->timestamp);
-		if (bindfile) {
-			fprintf(bindfile, "%s.\tIN NS\t%s.\n", rr->dnsdomainname, rr->cname);
-			if (ipdx>=0)
-				fprintf(bindfile, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
-		}
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			rr_start(DNS_T_NS, rr->ttl, rr->timestamp);
-			rr_addname(dottemp2);
-			rr_finish(dottemp1);
-			if (ipdx>=0 && ip4_scan(rr->ipaddr[ipdx], ip)) {
-				rr_start(DNS_T_A, rr->ttl, rr->timestamp);
-				rr_add(ip, 4);
-				rr_finish(dottemp2);
+		if (tinyfile) {
+			if (znix==0) {
+				if (ipdx<=0 && rr->cipaddr[0]) {
+					fprintf(tinyfile, "&%s::%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+					if (rr->cname[0])
+						fprintf(tinyfile, "=%s:%s:%d:%s\n", rr->cname, rr->cipaddr, rr->ttl, rr->timestamp);
+					if (ipdx==0)
+						fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[0], rr->ttl, rr->timestamp);
+				} else if (ipdx<0)
+					fprintf(tinyfile, "&%s::%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
+				else if (ipdx==0)
+					fprintf(tinyfile, "&%s:%s:%s:%d:%s\n", rr->dnsdomainname, rr->ipaddr[0], rr->cname, rr->ttl, rr->timestamp);
+				else if (ipdx>0 && rr->cname[0])
+					fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
+			} else if (ipdx<=0) {
+				fprintf(tinyfile, "&%s::%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
 			}
 		}
-#endif
+		if (namedzone) {
+			fprintf(namedzone, "%s.\tIN NS\t%s.\n", rr->dnsdomainname, rr->cname);
+			if (ipdx>=0)
+				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
+		}
 	} else if (strcasecmp(rr->type, "MX")==0) {
-		if (tinyfile)
-			fprintf(tinyfile, "@%s:%s:%s:%d:%d:%s\n", rr->dnsdomainname, (ipdx>=0 ? rr->ipaddr[ipdx] : ""), rr->cname, rr->preference, rr->ttl, rr->timestamp);
-		if (bindfile) {
-			fprintf(bindfile, "%s.\tIN MX\t%d %s.\n", rr->dnsdomainname, rr->preference, rr->cname);
+		if (tinyfile) {
+			if (znix==0) {
+				if (ipdx<=0 && rr->cipaddr[0]) {
+					fprintf(tinyfile, "@%s::%s:%d:%d:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
+					if (rr->cname[0])
+						fprintf(tinyfile, "=%s:%s:%d:%s\n", rr->cname, rr->cipaddr, rr->ttl, rr->timestamp);
+					if (ipdx==0)
+						fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[0], rr->ttl, rr->timestamp);
+				} else if (ipdx<0)
+					fprintf(tinyfile, "@%s::%s:%d:%d:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
+				else if (ipdx==0)
+					fprintf(tinyfile, "@%s:%s:%s:%d:%d:%s\n", rr->dnsdomainname, rr->ipaddr[0], rr->cname, rr->preference, rr->ttl, rr->timestamp);
+				else if (ipdx>0 && rr->cname[0])
+					fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->cname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
+			} else if (ipdx<=0) {
+				fprintf(tinyfile, "@%s::%s:%d:%d:%s\n", rr->dnsdomainname, rr->cname, rr->preference, rr->ttl, rr->timestamp);
+			}
+		}
+		if (namedzone) {
+			fprintf(namedzone, "%s.\tIN MX\t%d %s.\n", rr->dnsdomainname, rr->preference, rr->cname);
 			if (ipdx>=0)
-				fprintf(bindfile, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
+				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
 		}
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			rr_start(DNS_T_MX, rr->ttl, rr->timestamp);
-			uint16_pack_big(buf, rr->preference);
-			rr_add(buf, 2);
-			rr_addname(dottemp2);
-			rr_finish(dottemp1);
-			if (ipdx>=0 && ip4_scan(rr->ipaddr[ipdx], ip)) {
-				rr_start(DNS_T_A, rr->ttl, rr->timestamp);
-				rr_add(ip, 4);
-				rr_finish(dottemp2);
-			}
-		}
-#endif
 	} else if ( strcasecmp(rr->type, "A")==0) {
-		if (tinyfile)
-			fprintf(tinyfile, "%s%s:%s:%d:%s\n", (autoreverse ? "=" : "+"), rr->dnsdomainname, (ipdx>=0 ? rr->ipaddr[ipdx] : ""), rr->ttl, rr->timestamp);
-		if (bindfile && ipdx>=0)
-			fprintf(bindfile, "%s.\tIN A\t%s\n", rr->dnsdomainname, rr->ipaddr[ipdx]);
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			char dptr[DNS_NAME4_DOMAIN];
-			if (ipdx>=0 && ip4_scan(rr->ipaddr[ipdx], ip)) {
-				rr_start(DNS_T_A, rr->ttl, rr->timestamp);
-				rr_add(ip, 4);
-				rr_finish(dottemp1);
-			}
-			if (autoreverse) {
-				dns_name4_domain(dptr, ip);
-				rr_start(DNS_T_PTR, rr->ttl, rr->timestamp);
-				rr_addname(dottemp1);
-				rr_finish(dptr);
-			}
+		if (tinyfile) {
+			if (ipdx<=0 && rr->cipaddr[0])
+				fprintf(tinyfile, "%s%s:%s:%d:%s\n", (znix==0 ? "=" : "+"), rr->dnsdomainname, rr->cipaddr, rr->ttl, rr->timestamp);
+			if (ipdx>=0)
+				fprintf(tinyfile, "+%s:%s:%d:%s\n", rr->dnsdomainname, rr->ipaddr[ipdx], rr->ttl, rr->timestamp);
 		}
-#endif
+		if (namedzone) {
+			if (ipdx<=0 && rr->cipaddr[0])
+				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->dnsdomainname, rr->cipaddr);
+			if (ipdx>=0)
+				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->dnsdomainname, rr->ipaddr[ipdx]);
+		}
 	} else if (strcasecmp(rr->type, "PTR")==0) {
 		int ip[4] = {0, 0, 0, 0};
 		char buf[64];
@@ -436,41 +370,18 @@ static void write_rr(struct resourcerecord* rr, int ipdx)
 		}
 		if (tinyfile)
 			fprintf(tinyfile, "^%s:%s:%d:%s\n", buf, rr->cname, rr->ttl, rr->timestamp);
-		if (bindfile)
-			fprintf(bindfile, "%s.\tIN PTR\t%s.\n", buf, rr->cname);
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			int dnsdn_len = strlen(buf);
-			if (!dns_domain_fromdot(&dottemp1, buf, dnsdn_len)) die_exit(0);
-			rr_start(DNS_T_PTR, rr->ttl, rr->timestamp);
-			rr_addname(dottemp2);
-			rr_finish(dottemp1);
-		}
-#endif
+		if (namedzone)
+			fprintf(namedzone, "%s.\tIN PTR\t%s.\n", buf, rr->cname);
 	} else if (strcasecmp(rr->type, "CNAME")==0) {
 		if (tinyfile)
 			fprintf(tinyfile, "C%s:%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
-		if (bindfile)
-			fprintf(bindfile, "%s.\tIN CNAME\t%s.\n", rr->dnsdomainname, rr->cname);
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			rr_start(DNS_T_CNAME, rr->ttl, rr->timestamp);
-			rr_addname(dottemp2);
-			rr_finish(dottemp1);
-		}
-#endif
+		if (namedzone)
+			fprintf(namedzone, "%s.\tIN CNAME\t%s.\n", rr->dnsdomainname, rr->cname);
 	} else if (strcasecmp(rr->type, "TXT")==0) {
 		if (tinyfile)
 			fprintf(tinyfile, "'%s:%s:%d:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp);
-		if (bindfile)
-			fprintf(bindfile, "%s.\tIN TXT\t%s.\n", rr->dnsdomainname, rr->cname);
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			rr_start(DNS_T_TXT, rr->ttl, rr->timestamp);
-			rr_addname(dottemp2);
-			rr_finish(dottemp1);
-		}
-#endif
+		if (namedzone)
+			fprintf(namedzone, "%s.\tIN TXT\t%s.\n", rr->dnsdomainname, rr->cname);
 	}
 }
 
@@ -516,7 +427,7 @@ static void parse_rr(struct resourcerecord* rr)
 #endif
 
 
-static void read_resourcerecords(char* dn)
+static void read_resourcerecords(char* dn, int znix)
 {
 	LDAPMessage* res = NULL;
 	LDAPMessage* m;
@@ -535,9 +446,10 @@ static void read_resourcerecords(char* dn)
 			fprintf(ldifout, "dn: %s\n", dn);
 		rr.cn[0] = '\0';
 		strncpy(rr.dnsdomainname, zone.domainname, 64);
-		strcpy(rr.class, "IN");
+		strncpy(rr.class, "IN", 3);
 		rr.type[0] = '\0';
 		rr.cname[0] = '\0';
+		rr.cipaddr[0] = '\0';
 		rr.ttl = time_now;
 		rr.timestamp[0] = '\0';
 		rr.preference = 10;
@@ -583,6 +495,12 @@ static void read_resourcerecords(char* dn)
 							if (options.ldifname[0])
 								fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
 						}
+					} else if (strcasecmp(attr, "DNScipaddr")==0) {
+						int ip[4];
+						if (sscanf(bvals[0]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4)
+							sprintf(rr.cipaddr, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+						if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
 					} else if (strcasecmp(attr, "DNScname")==0) {
 						if (!expand_domainname(rr.cname, bvals[0]->bv_val, bvals[0]->bv_len))
 							rr.cname[0] = '\0';
@@ -628,7 +546,7 @@ static void read_resourcerecords(char* dn)
 #endif
 		do {
 			ipaddresses--;
-			write_rr(&rr, ipaddresses);
+			write_rr(&rr, ipaddresses, znix);
 		} while (ipaddresses>0);
 #if defined DRAFT_RFC
 		if (rr.aliasedobjectname[0])
@@ -654,34 +572,20 @@ static void write_zone(void)
 		    zone.zonemaster, zone.adminmailbox, zone.serial, zone.refresh, zone.retry,
 		    zone.expire, zone.minimum, zone.ttl, zone.timestamp);
 	}
-	
-	if (bindfile) {
-		fprintf(bindfile, "; Automatically generated by ldap2dns - DO NOT EDIT!\n");
-		fprintf(bindfile, "%s. IN SOA %s. %s. ", zone.domainname, zone.zonemaster, zone.adminmailbox);
-		fprintf(bindfile, "(\n\t%d\t; Serial\n\t%d\t; Refresh\n\t%d\t; Retry\n\t%d\t; Expire\n\t%d )\t; Minimum\n", zone.serial, zone.refresh, zone.retry, zone.expire, zone.minimum); 
+	if (namedmaster) {
+		fprintf(namedmaster, "zone \"%s\" %s {\n\ttype master;\n\tfile \"%s.db\";\n};\n",
+		    zone.domainname, zone.class, zone.domainname);
 	}
-
-#if defined WITH_TINYDNS
-	if (options.output&1) {
-		byte_zero(zone.timestamp, 8);
-		len = strlen(zone.domainname);
-		if (!dns_domain_fromdot(&dottemp1, zone.domainname, len)) die_exit(0);
-		uint32_pack_big(soa, zone.serial);
-		uint32_pack_big(soa+4, zone.refresh);
-		uint32_pack_big(soa+8, zone.retry);
-		uint32_pack_big(soa+12, zone.expire);
-		uint32_pack_big(soa+16, zone.minimum);
-		rr_start(DNS_T_SOA, zone.ttl, zone.timestamp);
+	if (namedzone) {
+		fprintf(namedzone, "# Automatically generated by ldap2dns - DO NOT EDIT!\n");
+		fprintf(namedzone, "$TTL %d\n", (zone.ttl>0) ? zone.ttl : 3600);
+		fprintf(namedzone, "%s. IN SOA ", zone.domainname);
 		len = strlen(zone.zonemaster);
-		if (!dns_domain_fromdot(&dottemp2, zone.zonemaster, len)) die_exit(0);
-		rr_addname(dottemp2);
+		fprintf(namedzone, (zone.zonemaster[len-1]=='.') ? "%s " : "%s. ", zone.zonemaster);
 		len = strlen(zone.adminmailbox);
-		if (!dns_domain_fromdot(&dottemp2, zone.adminmailbox, len)) die_exit(0);
-		rr_addname(dottemp2);
-		rr_add(soa, 20);
-		rr_finish(dottemp1);
+		fprintf(namedzone, (zone.adminmailbox[len-1]=='.') ? "%s " : "%s. ", zone.adminmailbox);
+		fprintf(namedzone, "(\n\t%d\t; Serial\n\t%d\t; Refresh\n\t%d\t; Retry\n\t%d\t; Expire\n\t%d )\t; Minimum\n", zone.serial, zone.refresh, zone.retry, zone.expire, zone.minimum); 
 	}
-#endif
 	if (options.ldifname[0])
 		fprintf(ldifout, "\n");
 }
@@ -725,6 +629,8 @@ static void read_dnszones(void)
 
 	if (tinyfile)
 		fprintf(tinyfile, "# Automatically generated by ldap2dns - DO NOT EDIT!\n");
+	if (namedmaster)
+		fprintf(namedmaster, "# Automatically generated by ldap2dns - DO NOT EDIT!\n");
 	if ( (ldaperr = ldap_search_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", NULL, 0, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
@@ -735,6 +641,7 @@ static void read_dnszones(void)
 		char zdn[256][64];
 		char ldif0;
 
+		strncpy(zone.class, "IN", 3);
 		zone.serial = time_now;
 		zone.refresh = 10800;
 		zone.retry = 3600;
@@ -812,16 +719,16 @@ static void read_dnszones(void)
 				options.ldifname[0] = '\0';
 			if (options.verbose&1)
 				printf("zonename: %s\n", zone.domainname);
-			if (options.output&4) {
-				char bindfilename[128];
-				sprintf(bindfilename, "%s.db", zone.domainname);
-				if ( !(bindfile = fopen(bindfilename, "w")) )
+			if (options.output&OUTPUT_DB) {
+				char namedzonename[128];
+				sprintf(namedzonename, "%s.db", zone.domainname);
+				if ( !(namedzone = fopen(namedzonename, "w")) )
 					die_exit("Unable to open db-file for writing");
 			}
 			write_zone();
-			read_resourcerecords(dn);
-			if (bindfile)
-				fclose(bindfile);
+			read_resourcerecords(dn, i);
+			if (namedzone)
+				fclose(namedzone);
 			if (options.verbose&2)
 				printf("\n");
 			if (options.ldifname[0])
@@ -852,11 +759,12 @@ int main(int argc, char** argv)
 	set_datadir();
 	for (;;) {
 		int ldaperr;
-		if ( !(ldap_con = ldap_init(options.hostname, options.port)) )
-			die_exit("Unable to initialize connection to LDAP server");
-		ldaperr = ldap_simple_bind_s(ldap_con, options.binddn, options.password);
+		ldap_con = ldap_init(options.hostname, options.port);
+		ldaperr = ldap_con && ldap_simple_bind_s(ldap_con, options.binddn, options.password);
 		if (ldaperr!=LDAP_SUCCESS) {
 			fprintf(stderr, "Warning - Could not connect to LDAP server %s:%d as '%s'\n", options.hostname, options.port, options.binddn);
+			if (options.is_daemon==0)
+				break;
 			sleep(options.update_iv);
 			continue;
 		}
@@ -872,13 +780,6 @@ int main(int argc, char** argv)
 				goto skip;
 			}
 		}
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			fdcdb = open_trunc(tinydns_tempfile);
-			if (fdcdb == -1) die_exit("Unable to create 'data.tmp'");
-			if (cdb_make_start(&cdb, fdcdb) == -1) die_exit("Unable to create 'data.tmp'");
-		}
-#endif
 		if (options.ldifname[0]) {
 			if (options.ldifname[0]=='-')
 				ldifout = stdout;
@@ -888,21 +789,24 @@ int main(int argc, char** argv)
 				die_exit("Unable to open LDIF-file for writing");
 		}
 		time(&time_now);
-		if ( options.output&2 && !(tinyfile = fopen(tinydns_textfile, "w")) )
-			die_exit("Unable to open file 'data' for writing");
+		if ( options.output&OUTPUT_DATA && !(tinyfile = fopen(tinydns_texttemp, "w")) )
+			die_exit("Unable to open file 'data.temp' for writing");
+		if ( options.output&OUTPUT_DB && !(namedmaster = fopen("named.zones", "w")) )
+			die_exit("Unable to open file 'named.zones' for writing");
 		read_dnszones();
-		if (tinyfile)
+		if (namedmaster)
+			fclose(namedmaster);
+		if (tinyfile) {
 			fclose(tinyfile);
+			if (soa_numzones==0 || soa_checksum==0)
+				break;
+			if (rename(tinydns_texttemp, tinydns_textfile)==-1)
+				die_exit("Unable to move 'data.temp' to 'data'");
+		}
 		if (options.ldifname[0] && ldifout)
 			fclose(ldifout);
-#if defined WITH_TINYDNS
-		if (options.output&1) {
-			if (cdb_make_finish(&cdb)==-1 || fsync(fdcdb)==-1 || close(fdcdb)==-1)
-				die_exit("Unable to create 'data.tmp'");
-			if (rename(tinydns_tempfile, tinydns_datafile)==-1)
-				die_exit("Unable to move 'data.tmp' to 'data.cdb'");
-		}
-#endif
+		if (options.exec_command[0])
+			system(options.exec_command);
 	    skip:
 		if ( (ldaperr = ldap_unbind_s(ldap_con))!=LDAP_SUCCESS )
 			die_ldap(ldaperr);

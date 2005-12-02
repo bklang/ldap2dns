@@ -1,0 +1,3 @@
+- Use env-variable LDAP2DNS_UPDATE for update intervalls
+- If connection to ldapserver fialed retry later
+

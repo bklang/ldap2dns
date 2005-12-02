@@ -1,0 +1,49 @@
+Version 0.2.3
++ Check for next availabe server in /etc/ldap.conf
+  if first one is unavialable.
+
+Version 0.2.2
+- Tested with djbdns-1.05
+
+- Removed compleatly the possibility to create a binary data.cdb file.
+  Reasons:
+  * It just takes a few milliseconds to create a data.cdb file with 
+    tinydns-data. 
+  * Its much safer to have an ASCII data file handy just in case 
+    something goes wrong.
+  * I am too lazy to adopt ldap2dns for each new version of djbdns.
+  * ldap2dns does not have to be linked statically against any other
+    package.
+
+- Now the output option takes parameters data and/or db instead
+  of numbers.
+
+Version 0.2.1
+- Additional attribute in DNSrrset: DNScipaddr
+  Canonical IP address, which when used instead
+  of DNSipaddr automatically resolves reverse.
+
+- Using Environement Variables LDAP2DNS_UPDATE and
+  LDAP2DNS_OUTPUT for default values used by ldap2dns.
+
+- If started as daemon, does not exit if connection to
+  LDAP server fails but tries to reconnect after a timeout.
+
+- An external program can be called if ldap2dns detects a
+  modification in the database.
+
+Version 0.2.0
+- New schema, unfortunately not compatible with old one, but
+  now its unambigous.
+
+- Mapping for reverse lookup works fine.
+
+- ldap2dns now can be started by daemontools.
+
+- Fixed a bug for DNSrrset's with type=TXT
+
+- Much better naming scheme for dn's when using
+  import.pl
+
+- RPM support
+

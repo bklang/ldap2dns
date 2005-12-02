@@ -1,6 +1,6 @@
 # schema for DNS data
 # include this file into Your slapd.conf for openldap-2.0.x
-# $Id: dns.schema,v 1.3 2000/12/01 14:48:25 jrief Exp $
+# $Id: dns.schema,v 1.4 2001/02/16 09:51:23 jrief Exp $
 
 attributetype ( 1.2.840.113556.1.17.1
 	NAME 'DNSzonename'
@@ -98,14 +98,14 @@ attributetype ( 1.2.840.113556.1.17.20
 objectclass ( 1.2.840.113556.1.17.21
 	NAME 'DNSzone' 
 	MUST ( objectclass $ cn )
-	MAY ( zonedomainname $ serial $ refresh $ retry $ expire $ minimum
-	    $ adminmailbox $ zonemaster $ zonetype $ zoneclass $ rrcount 
-	    $ ttl $ timestamp ) )
+	MAY ( DNSdomainname $ DNSserial $ DNSrefresh $ DNSretry $ DNSexpire $ DNSminimum
+	    $ DNSadminmailbox $ DNSzonemaster $ DNSzonetype $ DNSzoneclass $ DNSrrcount 
+	    $ DNSttl $ DNStimestamp ) )
 
 objectclass ( 1.2.840.113556.1.17.22
 	NAME 'DNSrrset' 
 	SUP DNSzone
 	MUST ( objectclass $ cn )
-	MAY ( dnsdomainname $ aliasedobjectname $ rr $ macaddress $ zoneclass 
-	    $ zonetype $ ipaddr $ cname $ preference $ ttl $ timestamp ) )
+	MAY ( DNSdomainname $ DNSaliasedobjectname $ DNSrr $ DNSmacaddress $ DNSclass 
+	    $ DNStype $ DNSipaddr $ DNScname $ DNSpreference $ DNSttl $ DNStimestamp ) )
 
