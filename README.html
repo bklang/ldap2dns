@@ -195,8 +195,12 @@ include         /etc/openldap/dns.at.conf
 include         /etc/openldap/dns.oc.conf
 </PRE>
 or, if You are using openldap-2.0.x:<BR>
-copy the file dns.schema into the directory /etc/openldap/schema or
-appropriate and add the following line to Your slapd.conf file:<BR>
+copy the file dns.schema-2.0 into the directory /etc/openldap/schema
+and rename it to dns.schema.
+If You are using openldap-2.2.x:<BR>
+copy the file dns.schema-2.2 into the directory /etc/openldap/schema
+and rename it to dns.schema.
+Add the following line to Your slapd.conf file:<BR>
 <PRE>
 include         /etc/openldap/schema/dns.schema
 </PRE>

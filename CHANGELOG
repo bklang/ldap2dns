@@ -1,9 +1,38 @@
-Version 0.2.7 (next)
+Version ?.?.? (next)
 + Make ldap2dns behave like a secondary nameserver by storing
   the serial number, expire, refresh, retry and minimum values 
   in a record.
 
-Version 0.2.6 (latest)
+Version 0.3.3 (latest)
+- Removed a bug which caused ldap2dns to etablish more than one connections
+  to the LDAP server.
+
+Version 0.3.2
++ Only patches from Martin Lesser <m-lesser@better-com.de>
+  applied. Nothing from myself.
++ connecting to a ldap-server where the server is given as URI works
+  (both ldap:// [with TLS] and ldaps://)
++ we use location-codes here, so ldap2dns.c was extended to make use of
+  them, this also requires an extension of dns.schema.
+
+Version 0.3.1 
++ ldap2dns now can work together with tinydns. This means that
+  all DNS queries are passed through tinydns directly onto the
+  LDAP backend. This avoids generating a data-file and calling
+  tinydns-data (or restarting BIND).
+  Drawback: Queries are much slower now. I am not sure if this
+  is acceptable on the long run. This is caused by the LDAP-schema 
+  used here, were many objects with strict attribute-value-pair mapping
+  is used. Other schemas, such as the core- and cosine-schema need
+  less LDAP-objects, since they code multiple values into one attribute.
+  Nameservers based on this schema (such as ldapdns 
+  http://nimh.org/code/ldapdns/) can therefore answer much faster.
+
+Version 0.3.0 
++ A new interface for web-administration written compleatly in PHP.
+  Much easier to install that the old mod_perl interface.
+
+Version 0.2.6
 + Password passed with option -w now is invisible to 'ps'.
 + ldap2tinydns-conf now takes a parameter to specify to user under
   which ldap2dns will be running.

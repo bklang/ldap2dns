@@ -1,0 +1,134 @@
+--- ldap2dns-0.3.1-orig/ldap2dns.c	2002-08-02 17:19:36.000000000 +0200
++++ ldap2dns-0.3.1/ldap2dns.c	2002-09-01 13:31:52.000000000 +0200
+@@ -14,7 +14,7 @@
+ #include <unistd.h>
+ 
+ #define UPDATE_INTERVALL 59
+-#define LDAP_CONF "/etc/ldap.conf"
++#define LDAP_CONF "/etc/ldap/ldap.conf"
+ #define OUTPUT_DATA 1
+ #define OUTPUT_DB 2
+ #define MAXHOSTS 10
+@@ -85,6 +85,7 @@
+ 	char searchbase[128];
+ 	char binddn[128];
+ 	char hostname[MAXHOSTS][128];
++	char urildap[MAXHOSTS][128];
+ 	int port[MAXHOSTS];
+ 	char password[128];
+ 	int usedhosts;
+@@ -94,6 +95,7 @@
+ 	int verbose;
+ 	char ldifname[128];
+ 	char exec_command[128];
++	int use_tls[MAXHOSTS];
+ } options;
+ 
+ 
+@@ -130,7 +132,8 @@
+ static void print_usage(void)
+ {
+ 	print_version();
+-	printf("usage: ldap2dns[d] [-D binddn] [-b searchbase] [-o data|db] [-h host] [-p port] [-w password] [-L[filename]] [-u numsecs] [-v[v]] [-V]\n\n");
++	printf("usage: ldap2dns[d] [-D binddn] [-b searchbase] [-o data|db] [-h host] [-p port] [-H hostURI] "
++		   "[-w password] [-L[filename]] [-u numsecs] [-v[v]] [-V]\n\n");
+ 	printf("ldap2dns connects to an LDAP server reads the DNS information stored in objectclasses\n"
+ 		"\t\tDNSzone and DNSrrset and writes a file to be used by tinydns or named.\n"
+ 		"\t\tldap2dnsd starts as background-job and continouesly updates DNS information.\n");
+@@ -143,6 +146,7 @@
+ 	printf("    -L[filename] Print output in LDIF format for reimport\n");
+ 	printf("    -h host\tHostname of LDAP server, defaults to localhost\n");
+ 	printf("    -p port\tPortnumber to connect to LDAP server, defaults to %d\n", LDAP_PORT);
++	printf("    -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
+ 	printf("    -u numsecs\tUpdate DNS data after numsecs. Defaults to %d if started as daemon.\n\t\t"
+ 		"Important notice: data.cdb is rewritten only after DNSserial in DNSzone is increased.\n",
+ 		UPDATE_INTERVALL);
+@@ -159,7 +163,18 @@
+ 
+         options.usedhosts = 0;
+         for (i = 0; i<MAXHOSTS; i++) {
+-                if ((k = sscanf(buf, "%128s:%d %512[A-Za-z0-9 .:_+-]", value, &port, rest))>=2) {
++		if (!strncasecmp(buf, "ldaps://", 8) || !strncasecmp(buf, "ldap://", 7)) {
++			// LDAP-URI is given/found, at the moment only the standard-ports 389 and 636 are supported
++			if (!strncasecmp(buf, "ldap://", 7))
++				options.use_tls[i] = 1;
++			if ((k = sscanf(buf, "%128s %512[A-Za-z0-9 .:/_+-]", value, rest))>=1) {
++				strcpy(options.urildap[i], value);
++				options.usedhosts++;
++				if (k==1)
++					break;
++				buf = rest;
++			} else break;
++		} else if ((k = sscanf(buf, "%128s:%d %512[A-Za-z0-9 .:_+-]", value, &port, rest))>=2) {
+                         strcpy(options.hostname[i], value);
+                         options.port[i] = port;
+                         options.usedhosts++;
+@@ -194,6 +209,8 @@
+ 			int i;
+ 			if (sscanf(buf, "BASE %128s", value)==1)
+ 				strcpy(options.searchbase, value);
++			if (sscanf(buf, "URI %512[A-Za-z0-9 .:/_+-]", value)==1)
++				parse_hosts(value);
+ 			if (sscanf(buf, "HOST %512[A-Za-z0-9 .:_+-]", value)==1)
+ 				parse_hosts(value);
+ 			if (sscanf(buf, "PORT %d", &len)==1)
+@@ -239,7 +256,7 @@
+ 	options.ldifname[0] = '\0';
+ 	strcpy(options.password, "");
+ 	strcpy(options.exec_command, "");
+-	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:o:p:u:V:v::w:L::"))>0 ) {
++	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:H:o:p:u:V:v::w:L::"))>0 ) {
+ 		if (optarg && strlen(optarg)>127) {
+ 			fprintf(stderr, "argument %s too long\n", optarg);
+ 			continue;
+@@ -260,6 +277,10 @@
+ 			strcpy(options.hostname[0], optarg);
+ 			options.usedhosts = 1;
+ 			break;
++		case 'H':
++			strcpy(options.urildap[0], optarg);
++			options.usedhosts = 1;
++			break;
+ 		    case 'L':
+ 			if (optarg==NULL)
+ 				strcpy(options.ldifname, "-");
+@@ -796,12 +817,37 @@
+ 
+ static int connect()
+ {
+-	int i;
++	int i, rc, version;
+ 	for (i = 0; i<options.usedhosts; i++) {
++		if ( strlen(options.urildap[i]) > 0) {
++			rc = ldap_initialize(&ldap_con, options.urildap[i]);
++			if (options.verbose&1 && rc == LDAP_SUCCESS) {
++				printf("ldap_initialization successful (%s)\n", options.urildap[i]);
++			} else if ( rc != LDAP_SUCCESS ) {
++				printf("ldap_initialization to %s failed %d\n", options.urildap[i], ldap_err2string(rc));
++				ldap_con = NULL;
++				return 0;
++			}
++			version = LDAP_VERSION3;
++			if ( (rc=ldap_set_option(ldap_con, LDAP_OPT_PROTOCOL_VERSION, &version)) != LDAP_SUCCESS ) {
++				printf("ldap_set_option to %s failed with err %s!\n", options.urildap[i], ldap_err2string(rc));
++				ldap_con = NULL;
++				return 0;
++			}
++			if ( options.use_tls[i] && (rc=ldap_start_tls_s( ldap_con, NULL, NULL )) != LDAP_SUCCESS ) {
++				printf("ldap_start_tls_s to %s failed with err %s!\n", options.urildap[i], ldap_err2string(rc));
++				ldap_con = NULL;
++				return 0;
++			}
++		} else {
+ 		ldap_con = ldap_init(options.hostname[i], options.port[i]);
++		}
+ 		if (ldap_simple_bind_s(ldap_con, options.binddn, options.password)==LDAP_SUCCESS) {
+-			if (options.verbose&1)
++			if (options.verbose&1 && strlen(options.urildap[i]) > 0) {
++				printf("Connected to %s as \"%s\"\n", options.urildap[i], options.binddn);
++			} else if (options.verbose&1) {
+ 				printf("Connected to %s:%d as \"%s\"\n", options.hostname[i], options.port[i], options.binddn);
++			}
+ 			return 1;
+ 		}
+ 	}
