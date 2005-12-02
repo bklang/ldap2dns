@@ -1,6 +1,6 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c,v 1.28 2001/05/08 07:00:06 jrief Exp $
+ * $Id: ldap2dns.c,v 1.29 2001/06/27 15:16:10 jrief Exp $
  * Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2 or later. See http://www.fsf.org for details
  */

@@ -1,111 +1,103 @@
 # schema for DNS data
 # include this file into Your slapd.conf for openldap-2.0.x
-# $Id: dns.schema,v 1.5 2001/05/08 07:00:06 jrief Exp $
+# $Id: dns.schema,v 1.7 2001/06/28 07:41:12 jrief Exp $
 
-attributetype ( 1.2.840.113556.1.17.1
+attributetype ( 1.3.6.1.4.1.7222.1.4.1
 	NAME 'DNSzonename'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.2
+attributetype ( 1.3.6.1.4.1.7222.1.4.2
 	NAME 'DNSserial'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.3
+attributetype ( 1.3.6.1.4.1.7222.1.4.3
 	NAME 'DNSrefresh'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.4
+attributetype ( 1.3.6.1.4.1.7222.1.4.4
 	NAME 'DNSretry'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.5
+attributetype ( 1.3.6.1.4.1.7222.1.4.5
 	NAME 'DNSexpire'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.6
+attributetype ( 1.3.6.1.4.1.7222.1.4.6
 	NAME 'DNSminimum'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.7
+attributetype ( 1.3.6.1.4.1.7222.1.4.7
 	NAME 'DNSadminmailbox'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.8
+attributetype ( 1.3.6.1.4.1.7222.1.4.8
 	NAME 'DNSzonemaster'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.9
+attributetype ( 1.3.6.1.4.1.7222.1.4.9
 	NAME 'DNStype'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.10
+attributetype ( 1.3.6.1.4.1.7222.1.4.10
 	NAME 'DNSclass'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.11
+attributetype ( 1.3.6.1.4.1.7222.1.4.11
 	NAME 'DNSdomainname'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.12
+attributetype ( 1.3.6.1.4.1.7222.1.4.12
 	NAME 'DNSipaddr'
 	EQUALITY numericStringMatch
 	SUBSTR numericStringSubstringsMatch
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )
 
-#attributetype ( 1.2.840.113556.1.17.13
-#	NAME 'DNSaliasedobjectname'
-#	SUP name )
+attributetype ( 1.3.6.1.4.1.7222.1.4.13
+	NAME 'DNScipaddr'
+	EQUALITY numericStringMatch
+	SUBSTR numericStringSubstringsMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )
 
-#attributetype ( 1.2.840.113556.1.17.14
-#	NAME 'DNSrrcount'
-#	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-#	SINGLE-VALUE )
-
-#attributetype ( 1.2.840.113556.1.17.15
-#	NAME 'DNSmacaddress'
-#	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
-#       SINGLE-VALUE )
-
-attributetype ( 1.2.840.113556.1.17.16
+attributetype ( 1.3.6.1.4.1.7222.1.4.14
 	NAME 'DNScname'
 	SUP name )
 
-attributetype ( 1.2.840.113556.1.17.17
+attributetype ( 1.3.6.1.4.1.7222.1.4.15
 	NAME 'DNSpreference'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.18
+attributetype ( 1.3.6.1.4.1.7222.1.4.16
 	NAME 'DNSrr'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.19
+attributetype ( 1.3.6.1.4.1.7222.1.4.17
 	NAME 'DNSttl'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
         SINGLE-VALUE )
 
-attributetype ( 1.2.840.113556.1.17.20
+attributetype ( 1.3.6.1.4.1.7222.1.4.18
 	NAME 'DNStimestamp'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
         SINGLE-VALUE )
 
-objectclass ( 1.2.840.113556.1.17.21
+objectclass ( 1.3.6.1.4.1.7222.1.4.19
 	NAME 'DNSzone' 
 	MUST ( objectclass $ cn )
-	MAY ( DNSdomainname $ DNSserial $ DNSrefresh $ DNSretry $ DNSexpire $ DNSminimum
-	    $ DNSadminmailbox $ DNSzonemaster $ DNStype $ DNSclass $ DNSrrcount 
-	    $ DNSttl $ DNStimestamp ) )
+	MAY ( DNSzonename $ DNSserial $ DNSrefresh $ DNSretry $ DNSexpire
+	    $ DNSminimum $ DNSadminmailbox $ DNSzonemaster $ DNStype $ DNSclass
+	    $ DNSttl $ DNStimestamp $ owner ) )
 
-objectclass ( 1.2.840.113556.1.17.22
+objectclass ( 1.3.6.1.4.1.7222.1.4.20
 	NAME 'DNSrrset' 
 	SUP DNSzone
 	MUST ( objectclass $ cn )
-	MAY ( DNSdomainname $ DNSaliasedobjectname $ DNSrr $ DNSmacaddress $ DNSclass 
-	    $ DNStype $ DNSipaddr $ DNScname $ DNSpreference $ DNSttl $ DNStimestamp ) )
+	MAY ( DNSdomainname $ DNSrr $ DNSclass $ DNStype $ DNSipaddr $ DNScipaddr 
+	    $ DNScname $ DNSpreference $ DNSttl $ DNStimestamp $ owner ) )
 
