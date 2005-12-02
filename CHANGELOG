@@ -1,10 +1,14 @@
-Version 0.2.6 (next)
+Version 0.2.7 (next)
 + Make ldap2dns behave like a secondary nameserver by storing
   the serial number, expire, refresh, retry and minimum values 
   in a record.
-+ Password to connect to LDAP now is invisible to ps.
 
-Version 0.2.5 (latest)
+Version 0.2.6 (latest)
++ Password passed with option -w now is invisible to 'ps'.
++ ldap2tinydns-conf now takes a parameter to specify to user under
+  which ldap2dns will be running.
+
+Version 0.2.5
 - Tested with OpenLDAP-2.0.
 - Adopted dns.schema with official numbers.
 

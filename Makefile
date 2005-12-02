@@ -1,5 +1,5 @@
-# $Id: Makefile,v 1.26 2001/06/27 15:16:10 jrief Exp $ 
-VERSION=0.2.5
+# $Id: Makefile,v 1.27 2001/08/09 10:35:49 jrief Exp $ 
+VERSION=0.2.6
 RELEASE=1
 CC=gcc -O2
 CFLAGS=$(INC) -DVERSION='"$(VERSION)"'

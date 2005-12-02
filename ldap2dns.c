@@ -1,6 +1,6 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c,v 1.29 2001/06/27 15:16:10 jrief Exp $
+ * $Id: ldap2dns.c,v 1.30 2001/08/09 10:35:49 jrief Exp $
  * Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2 or later. See http://www.fsf.org for details
  */
@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #define UPDATE_INTERVALL 59
-#define LDAP_CONF "/etc/openldap/ldap.conf"
+#define LDAP_CONF "/etc/ldap.conf"
 #define OUTPUT_DATA 1
 #define OUTPUT_DB 2
 #define MAXHOSTS 10
@@ -183,7 +183,7 @@ static int parse_options()
 	extern int optind, opterr, optopt;
 	char buf[256], value[128];
 	int len;
-	FILE* ldap_conf;
+	FILE* ldap_conf,*fp;
 	char* ev;
 
 	strcpy(options.searchbase, "");
@@ -199,6 +199,11 @@ static int parse_options()
 			if (sscanf(buf, "PORT %d", &len)==1)
 				for (i = 0; i<MAXHOSTS; i++)
 					options.port[i] = len;
+			if (sscanf(buf, "BINDDN %128s", value)==1) {
+				strcpy(options.binddn, value);
+				if (sscanf(buf, "BINDPW %128s", value)==1)
+					strcpy(options.password, value);
+			}
 		}
 		fclose(ldap_conf);
 	}
@@ -212,8 +217,9 @@ static int parse_options()
 		options.update_iv = 0;
 	}
 	ev = getenv("LDAP2DNS_UPDATE");
-	if (ev && sscanf(ev, "%d", &len)==1 && len>0)
+	if (ev && sscanf(ev, "%d", &len)==1 && len>0) {
 		options.update_iv = len;
+	}
 	options.output = 0;
 	ev = getenv("LDAP2DNS_OUTPUT");
 	if (ev) {
@@ -222,11 +228,18 @@ static int parse_options()
 		else if (strcmp(ev, "db")==0)
 			options.output = OUTPUT_DB;
 	}
+	ev = getenv("LDAP2DNS_BINDDN");
+	if (ev) {
+		strncpy(options.binddn, ev, 128);
+		ev = getenv("LDAP2DNS_PASSWORD");
+		if (ev)
+			strncpy(options.password, ev, 128);
+	}
 	options.verbose = 0;
 	options.ldifname[0] = '\0';
 	strcpy(options.password, "");
 	strcpy(options.exec_command, "");
-	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:o:p:u:Vw:v::L::"))>0 ) {
+	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:o:p:u:V:v::w:L::"))>0 ) {
 		if (optarg && strlen(optarg)>127) {
 			fprintf(stderr, "argument %s too long\n", optarg);
 			continue;
@@ -274,6 +287,7 @@ static int parse_options()
 			exit(0);
 		    case 'w':
 			strcpy(options.password, optarg);
+			memset(optarg, 'x', strlen(options.password));
 			break;
 		    case 'e':
 			strcpy(options.exec_command, optarg);
