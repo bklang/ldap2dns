@@ -1,10 +1,10 @@
-# $Id: Makefile,v 1.22 2001/02/16 09:51:23 jrief Exp $ 
-VERSION=0.2.3
+# $Id: Makefile,v 1.24 2001/05/08 07:00:06 jrief Exp $ 
+VERSION=0.2.4
 RELEASE=1
 CC=gcc -O2
-CFLAGS=$(INC) $(WITHTINYDNS) -DVERSION='"$(VERSION)"'
+CFLAGS=$(INC) -DVERSION='"$(VERSION)"'
 OBJS=ldap2dns.o 
-LIBS=-lldap -llber -lresolv
+LIBS=-lldap -llber
 LD=gcc 
 LDFLAGS=
 INSTALL_PREFIX=
@@ -32,7 +32,7 @@ install: all
 	install -o root -g root -m 644 dns.oc.conf $(LDAPCONFDIR)/
 
 clean:
-	rm -f $(OBJS) ldap2dns ldap2dnsd data* *.db $(SPECFILE)
+	rm -f $(OBJS) ldap2dns ldap2dnsd data* *.db core $(SPECFILE)
 
 tar: clean
 	cd ..; \

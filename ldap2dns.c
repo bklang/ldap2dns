@@ -1,6 +1,6 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c,v 1.27 2001/03/12 12:26:55 jrief Exp $
+ * $Id: ldap2dns.c,v 1.28 2001/05/08 07:00:06 jrief Exp $
  * Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2 or later. See http://www.fsf.org for details
  */
@@ -17,6 +17,7 @@
 #define LDAP_CONF "/etc/openldap/ldap.conf"
 #define OUTPUT_DATA 1
 #define OUTPUT_DB 2
+#define MAXHOSTS 10
 
 static char tinydns_textfile[256];
 static char tinydns_texttemp[256];
@@ -83,11 +84,12 @@ static struct
 {
 	char searchbase[128];
 	char binddn[128];
-	char hostname[128];
+	char hostname[MAXHOSTS][128];
+	int port[MAXHOSTS];
 	char password[128];
+	int usedhosts;
 	int is_daemon;
 	int update_iv;
-	int port;
 	unsigned int output;
 	int verbose;
 	char ldifname[128];
@@ -150,6 +152,31 @@ static void print_usage(void)
 	printf("    -V\t\tprint version and exit\n\n");
 }
 
+static void parse_hosts(char* buf)
+{
+        int i, port, k;
+        char value[128], rest[512];
+
+        options.usedhosts = 0;
+        for (i = 0; i<MAXHOSTS; i++) {
+                if ((k = sscanf(buf, "%128s:%d %512[A-Za-z0-9 .:_+-]", value, &port, rest))>=2) {
+                        strcpy(options.hostname[i], value);
+                        options.port[i] = port;
+                        options.usedhosts++;
+                        if (k==2)
+                                break;
+                        buf = rest;
+                } else if ((k = sscanf(buf, "%128s %512[A-Za-z0-9 .:_+-]", value, rest))>=1) {
+                        strcpy(options.hostname[i], value);
+                        options.port[i] = LDAP_PORT;
+                        options.usedhosts++;
+                        if (k==1)
+                                break;
+                        buf = rest;
+                } else break;
+        }
+}
+
 static int parse_options()
 {
 	extern char* optarg;
@@ -160,19 +187,18 @@ static int parse_options()
 	char* ev;
 
 	strcpy(options.searchbase, "");
-	strcpy(options.hostname, "localhost");
-	options.port = LDAP_PORT;
+	strcpy(options.hostname[0], "localhost");
+	options.port[0] = LDAP_PORT;
 	if (ldap_conf = fopen(LDAP_CONF, "r")) {
 		while(fgets(buf, 256, ldap_conf)!=0) {
+			int i;
 			if (sscanf(buf, "BASE %128s", value)==1)
 				strcpy(options.searchbase, value);
-			if (sscanf(buf, "HOST %128s:%d", value, &len)==2) {
-				strcpy(options.hostname, value);
-				options.port = len;
-			} else if (sscanf(buf, "HOST %128s", value)==1)
-				strcpy(options.hostname, value);
+			if (sscanf(buf, "HOST %512[A-Za-z0-9 .:_+-]", value)==1)
+				parse_hosts(value);
 			if (sscanf(buf, "PORT %d", &len)==1)
-				options.port = len;
+				for (i = 0; i<MAXHOSTS; i++)
+					options.port[i] = len;
 		}
 		fclose(ldap_conf);
 	}
@@ -218,7 +244,8 @@ static int parse_options()
 			strcpy(options.binddn, optarg);
 			break;
 		    case 'h':
-			strcpy(options.hostname, optarg);
+			strcpy(options.hostname[0], optarg);
+			options.usedhosts = 1;
 			break;
 		    case 'L':
 			if (optarg==NULL)
@@ -233,8 +260,8 @@ static int parse_options()
 				options.output |= OUTPUT_DB;
 			break;
 		    case 'p':
-			if (sscanf(optarg, "%d", &options.port)!=1)
-				options.port = LDAP_PORT;
+			if (sscanf(optarg, "%d", &options.port[0])!=1)
+				options.port[0] = LDAP_PORT;
 			break;
 		    case 'v':
 			if (optarg && optarg[0]=='v')
@@ -753,6 +780,21 @@ static void read_dnszones(void)
 	ldap_msgfree(res);
 }
 
+static int connect()
+{
+	int i;
+	for (i = 0; i<options.usedhosts; i++) {
+		ldap_con = ldap_init(options.hostname[i], options.port[i]);
+		if (ldap_simple_bind_s(ldap_con, options.binddn, options.password)==LDAP_SUCCESS) {
+			if (options.verbose&1)
+				printf("Connected to %s:%d as \"%s\"\n", options.hostname[i], options.port[i], options.binddn);
+			return 1;
+		}
+	}
+	ldap_con = NULL;
+	return 0;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -771,11 +813,9 @@ int main(int argc, char** argv)
 	}
 	set_datadir();
 	for (;;) {
-		int ldaperr;
-		ldap_con = ldap_init(options.hostname, options.port);
-		ldaperr = ldap_con && ldap_simple_bind_s(ldap_con, options.binddn, options.password);
-		if (ldaperr!=LDAP_SUCCESS) {
-			fprintf(stderr, "Warning - Could not connect to LDAP server %s:%d as '%s'\n", options.hostname, options.port, options.binddn);
+		int ldaperr = -1;
+		if (!connect()) {
+			fprintf(stderr, "Warning - Could not connect to any LDAP server\n");
 			if (options.is_daemon==0)
 				break;
 			sleep(options.update_iv);

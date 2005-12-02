@@ -7,7 +7,6 @@ Release: %RELEASE%
 Copyright: GPL
 Group: Daemons/DNS
 Source: ldap2dns-%{version}.tar.gz
-Source1: http://cr.yp.to/djbdns/%{djbdns}.tar.gz
 BuildRoot: /var/tmp/%{name}-root
 Requires: openldap
 
@@ -24,17 +23,13 @@ ldap2dns is designed to write binary data.cdb files used by tinydns, but also ma
 used to write .db-files used by named.
 
 %prep
-#%setup -a1 -q
 %setup
 
 %build
-#make -C %{djbdns}
-#make DJBDNSDIR="%{djbdns}" VERSION=%{version} RPM_OPT_FLAGS="$RPM_OPT_FLAGS"
 make VERSION=%{version} RPM_OPT_FLAGS="$RPM_OPT_FLAGS"
 
 %install
 [ -n "%{buildroot}" -a "%{buildroot}" != / ] && rm -rf %{buildroot}
-#make DJBDNSDIR="%{djbdns}" INSTALL_PREFIX=$RPM_BUILD_ROOT install
 make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 
 %clean

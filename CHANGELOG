@@ -1,8 +1,15 @@
-Version 0.2.4 (todo)
-+ Check for next availabe server in /etc/ldap.conf
-  if first one is unavialable.
+Version 0.2.5 (next)
++ Make ldap2dns behave like a secondary nameserver by storing
+  the serial number, expire, refresh, retry and minimum values 
+  in a record.
++ Password to connect to LDAP now is invisible to ps.
 
-Version 0.2.3
+Version 0.2.4 (latest)
+- Check for next availabe server in /etc/ldap.conf
+  if one is unavialable.
+- Schema for DNSzone in dns.schema was corrected.
+
+Version 0.2.3 
 - Replaced integer variables for DNSserial, DNSttl etc. by strings
   to allow better default handling by tinydns-data.
 - ldap2dns now writes logfiles.
