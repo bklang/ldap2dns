@@ -85,6 +85,9 @@ struct resourcerecord
 	char aliasedobjectname[256];
 	char macaddress[32];
 #endif
+	int dnssrvpriority;
+	int dnssrvweight;
+	int dnssrvport;
 };
 
 
@@ -361,6 +364,9 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 {
 	char ip[4];
 	char buf[4];
+	char *tmp;
+	char *p;
+	int i;
 
 	if (strcasecmp(rr->class, "IN"))
 		return;
@@ -452,9 +458,20 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			fprintf(tinyfile, "'%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp, rr->location);
 		if (namedzone)
 			fprintf(namedzone, "%s.\tIN TXT\t%s.\n", rr->dnsdomainname, rr->cname);
+	} else if (strcasecmp(rr->type, "SRV")==0) {
+		if (tinyfile)
+			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->dnssrvpriority >> 8, rr->dnssrvpriority & 0xff, rr->dnssrvweight >> 8, rr->dnssrvweight & 0xff, rr->dnssrvport >> 8, rr->dnssrvport & 0xff);
+			tmp = strdup(rr->cname);
+			while (p = strchr(tmp, '.')) {
+				*p = '\0';
+				p++;
+				fprintf(tinyfile, "\\%03o%s", strlen(tmp), tmp);
+				tmp = p;
+			}
+			fprintf(tinyfile, "\\%03o%s", strlen(tmp), tmp);
+			fprintf(tinyfile, "\\000:%s:%s:%s\n", rr->ttl, rr->timestamp, rr->location);
 	}
 }
-
 
 #if defined DRAFT_RFC
 static void parse_rr(struct resourcerecord* rr)
@@ -528,6 +545,9 @@ static void read_resourcerecords(char* dn, int znix)
 		rr.aliasedobjectname[0] = '\0';
 		rr.rr[0] = '\0';
 #endif
+                rr.dnssrvpriority = 0;
+                rr.dnssrvweight = 0;
+                rr.dnssrvport = 0;
 		for (attr = ldap_first_attribute(ldap_con, m, &ber); attr; attr = ldap_next_attribute(ldap_con, m, ber)) {
 			int len = strlen(attr);
 			struct berval** bvals;
@@ -613,6 +633,22 @@ static void read_resourcerecords(char* dn, int znix)
 					} else if (strcasecmp(attr, "DNSmacaddress")==0) {
 					}
 #endif
+					else if (strcasecmp(attr, "DNSsrvpriority")==0) {
+						if (!(rr.dnssrvpriority = atoi(bvals[0]->bv_val)))
+                                                        rr.dnssrvpriority = 0;
+                                                else if (options.ldifname[0])
+                                                        fprintf(ldifout, "%s: %d\n", attr, rr.dnssrvpriority);
+					} else if (strcasecmp(attr, "DNSsrvweight")==0) {
+						if (!(rr.dnssrvweight = atoi(bvals[0]->bv_val)))
+                                                        rr.dnssrvweight = 0;
+                                                else if (options.ldifname[0])
+                                                        fprintf(ldifout, "%s: %d\n", attr, rr.dnssrvweight);
+                                        } else if (strcasecmp(attr, "DNSsrvport")==0) {
+						if (!(rr.dnssrvport = atoi(bvals[0]->bv_val)))
+                                                        rr.dnssrvport = 0;
+                                                else if (options.ldifname[0])
+                                                        fprintf(ldifout, "%s: %d\n", attr, rr.dnssrvport);
+                                        }
 				}
 				ldap_value_free_len(bvals);
 			}
