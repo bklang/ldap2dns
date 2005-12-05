@@ -11,9 +11,7 @@ INSTALL_PREFIX=
 PREFIXDIR=$(INSTALL_PREFIX)/usr
 LDAPCONFDIR=$(INSTALL_PREFIX)/etc/openldap
 SPECFILE=ldap2dns.spec
-RPMSRCDIR=/usr/src/packages/SOURCES
-# For Red Hat use
-# make RPMSRCDIR=/usr/src/redhat/SOURCES rpm
+DISTRIBUTION=redhat
 
 all: ldap2dns ldap2dnsd
 
@@ -52,13 +50,22 @@ tar: clean
 	mv ldap2dns-$(VERSION) ldap2dns; \
 	cd ldap2dns
 
-$(SPECFILE): Specfile
+rpm: tar
+ifeq "$(DISTRIBUTION)" "redhat"
+	RPMBASE=/usr/src/redhat
+	RPMGROUP=Daemons/DNS
+endif
+
+ifeq "$(DISTRIBUTION)" "suse"
+	RPMBASE=/usr/src/packages
+	RPMGROUP=Productivity/Networking/DNS/Servers
+endif
+
+
 	sed -e 's#%VERSION%#$(VERSION)#g' \
 	    -e 's#%RELEASE%#$(RELEASE)#g' \
-	    < $< > $@
-
-rpm: tar $(SPECFILE)
-	mv ../ldap2dns-$(VERSION).tar.gz $(RPMSRCDIR)
+		-e 's#%RPMGROUP%#$(RPMGROUP)#g' \
+	    < $(SPECFILE).in > $(SPECFILE)
+		
+	mv ../ldap2dns-$(VERSION).tar.gz $(RPMBASE)
 	rpmbuild -ba $(SPECFILE)
-
-

@@ -1,12 +1,27 @@
-Summary: LDAP to DNS gateway.
-Name: ldap2dns
-Version: %VERSION%
-Release: %RELEASE%
-Copyright: GPL
-Group: Daemons/DNS
-Source: ldap2dns-%{version}.tar.gz
-BuildRoot: /var/tmp/%{name}-root
-Requires: openldap-devel
+#
+# spec file for package ldap2dns
+#
+# Copyright (c) 2005 Ben Klang, Alkaloid Networks
+# This file and all modifications and additions to the pristine
+# package are under the same license as the package itself.
+#
+# Please submit bugfixes or comments via http://projects.alkaloid.net
+#
+
+# norootforbuild
+# neededforbuild  openldap-devel
+BuildRequires: openldap-devel
+
+Summary:	LDAP to DNS gateway
+Packager:	Ben Klang <ben@alkaloid.net>
+Vendor:		Alkaloid Networks
+Name:		ldap2dns
+Version:	%VERSION%
+Release:	%RELEASE%
+License:	GPL
+Group:		%RPMGROUP%
+Source:		ldap2dns-%{version}.tar.gz
+BuildRoot:	%{_tmppath}/%{name}-%{version}-build
 
 %description
 ldap2dns is a program to create DNS records directly from an LDAP database. It
@@ -17,8 +32,9 @@ administrator only has to access the LDAP database.
 If he desires he can add access control for each zone, create a webbased GUI
 and add all other kind of zone and resource record information without
 interfering with the DNS server.
-ldap2dns is designed to write binary data.cdb files used by tinydns, but also
-may be used to write .db-files used by named.
+
+ldap2dns is designed to write the text data files used by tinydns, but also
+may be used to write zone files used by Bind.
 
 %prep
 %setup
@@ -38,7 +54,8 @@ make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 /usr/bin/ldap2dns
 /usr/bin/ldap2dnsd
 /usr/bin/ldap2tinydns-conf
-%doc README.html 
+%doc doc/README.html 
+%doc doc/example.ldif
 %doc import.pl
 %config /etc/openldap/schema/ldap2dns.schema
 
