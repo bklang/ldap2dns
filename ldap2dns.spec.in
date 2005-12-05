@@ -9,8 +9,8 @@
 #
 
 # norootforbuild
-# neededforbuild  openldap-devel
-BuildRequires: openldap-devel
+# neededforbuild  %OPENLDAPPKG%-devel
+BuildRequires: %OPENLDAPPKG%-devel
 
 Summary:	LDAP to DNS gateway
 Packager:	Ben Klang <ben@alkaloid.net>
@@ -22,6 +22,7 @@ License:	GPL
 Group:		%RPMGROUP%
 Source:		ldap2dns-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-build
+Autoreqprov:	 on
 
 %description
 ldap2dns is a program to create DNS records directly from an LDAP database. It
@@ -36,6 +37,7 @@ interfering with the DNS server.
 ldap2dns is designed to write the text data files used by tinydns, but also
 may be used to write zone files used by Bind.
 
+%debugpackage
 %prep
 %setup
 
@@ -64,4 +66,3 @@ make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 - Updated Specfile to version 0.3.6
 * Wed Dec 06 2000 Jacob Rief <jacob.rief@tiscover.com>
 - initial revision for version 0.2.0
-

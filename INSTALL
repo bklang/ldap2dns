@@ -1,0 +1,22 @@
+Make sure you have the OpenLDAP version 2 include files installed.
+
+For Red Hat, this would be the openldap-devel package
+for SuSE, this would be the openldap2-devel package
+
+Type "make" in the current directory.  If all goes well follow up with a 
+"make install"
+
+To create an RPM, use one of the following commands:
+
+sudo make DISTRIBUTION=redhat rpm
+sudo make DISTRIBUTION=suse rpm
+
+if you are running Red Hat or SuSE respectively.
+
+For updates and changes see http://projects.alkaloid.net
+
+Please send any problem or success reports to the maintainer.
+
+-- 
+Ben Klang <ben@alkaloid.net>
+Alkaloid Networks
