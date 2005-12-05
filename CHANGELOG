@@ -5,6 +5,16 @@ Version ?.?.? (next)
 
 Version 0.3.6 (latest)
 + Fixed bug with duplicate OIDs in dns.schema from partially applied patch
++ Renamed schema file to ldap2dns.schema
++ Updated RPM specfile (UNTESTED, may need editing)
++ Removed already merged patchfiles
++ Restructured file layout, created doc directory
++ Deprecated unfinished webadmin work.  Will be replaced with Beatnik
++ Deprecated OpenLDAP 2.0 schema support
++ Deprecated djbdns-1.0.5 native LDAP patch (status of patch unknown)
++ Removed old index.html
++ Removed TODO.schema
++ Updated Makefile
 
 Version 0.3.5 - 2005/11/30
 + Added support for DNS SRV records
