@@ -3,7 +3,13 @@ Version ?.?.? (next)
   the serial number, expire, refresh, retry and minimum values 
   in a record.
 
-Version 0.3.3 (latest)
+Version 0.3.6 (latest)
++ Fixed bug with duplicate OIDs in dns.schema from partially applied patch
+
+Version 0.3.5 - 2005/11/30
++ Added support for DNS SRV records
+
+Version 0.3.3
 - Removed a bug which caused ldap2dns to etablish more than one connections
   to the LDAP server.
 
