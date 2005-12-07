@@ -13,7 +13,7 @@ sudo make DISTRIBUTION=suse rpm
 
 if you are running Red Hat or SuSE respectively.
 
-For updates and changes see http://projects.alkaloid.net
+For updates, changes and some documentation, see http://projects.alkaloid.net
 
 Please send any problem or success reports to the maintainer.
 

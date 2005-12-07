@@ -4,6 +4,7 @@ Version ?.?.? (next)
   in a record.
 
 Version 0.3.6 (latest)
++ New maintainer: Ben Klang <ben@alkaloid.net>
 + Fixed bug with duplicate OIDs in dns.schema from partially applied patch
 + Renamed schema file to ldap2dns.schema
 + Updated RPM specfile
@@ -18,6 +19,7 @@ Version 0.3.6 (latest)
 + Modified ldap2dns-conf to behave more like tinydns-conf
 + Altered default behavior (via ldap2dns-conf) to run ldap2dns as non-root
 + Updated FAQ
++ Deprecated askldap.c and askldap.h
 
 Version 0.3.5 - 2005/11/30
 + Added support for DNS SRV records

@@ -12,6 +12,21 @@ own.  You might also contact the author, Jacob Rief (jacob.rief@tiscover.com)
 for more information but he is no longer interested in maintaing this work
 so do not depend on him.
 
+2) Why have you deprecated all that code?
+
+2005-12-07 bklang
+This is partially answered above, but to fully answer the question it's not
+any comment or criticism of the original author.  Really it is just code that
+appears to me to be somewhat extraneous to what I consider to be the core
+functionality of ldap2dns.  That combined with my desire to focus on the core
+functionality and not maintain this other work leads me to note the status of
+that code to others who may use this package.  The code may or may not work;
+you are entirely on your own.  If demand is sufficient some parts may come back
+into the main tarball.  However for now I leave it there in case anyone out
+there wants it.  It is unmaintained (at least by me) and should not be
+considered stable or even working unless you audit it yourself.
+You have been warned. Caveat emptor.
+
 
 -- Old FAQ entry below (meaning is unclear to me -- 2005/12/07 bklang --
 
