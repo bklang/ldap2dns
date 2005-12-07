@@ -1,6 +1,6 @@
 # $Id: Makefile,v 1.30 2003/01/20 14:33:25 jrief Exp $ 
 VERSION=0.3.6
-RELEASE=1
+RELEASE=2
 CC=gcc -O2
 CCDEBUG=gcc -g
 CFLAGS=$(INC) -DVERSION='"$(VERSION)"'
