@@ -1,3 +1,20 @@
+1) What happened to the webadmin directory?
+
+2005-12-07 bklang
+I have deprecated that code in favor of another project I am working on.  It
+is called Beatnik and is a Horde framework module.  The status of the webadmin
+code was unclear and I was not willing to support it so I deprecated it.  I 
+left it as part of the tarball release and in version control in case others
+out there felt differently and/or it ever needed to be modified or even revived.
+
+As far as I'm concerned you are welcome to use it but consequently are on your
+own.  You might also contact the author, Jacob Rief (jacob.rief@tiscover.com)
+for more information but he is no longer interested in maintaing this work
+so do not depend on him.
+
+
+-- Old FAQ entry below (meaning is unclear to me -- 2005/12/07 bklang --
+
 From: Steven Dossett <sdossett@panath.com>
 Right after I mailed you, I patched the schema :)
 I moved from IA5 Strings to Numeric Strings in that section of the schema:

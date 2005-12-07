@@ -1,32 +1,45 @@
 #!/bin/sh
+LDAP2DNSUSER=$1
+LDAP2DNSLOGUSER=$2
+LDAP2DNSDIR=$3
+TINYDNSDIR=$4
 
-mkdir ldap2tinydns
-mkdir ldap2tinydns/env
-mkdir ldap2tinydns/log
-mkdir ldap2tinydns/log/main
-touch ldap2tinydns/log/status
+if [ -z "$LDAP2DNSUSER" -o -z "$LDAP2DNSLOGUSER" -o -z "$LDAP2DNSDIR" -o \
+     -z "$TINYDNSDIR" ]; then
+    echo "usage: $0  acct logacct /path/to/supervise /path/to/tinydns-supervise" >&2
+    exit 1
+fi
 
-cat << EOF_run > ldap2tinydns/run
+set -e # Err out immediately if any of the following fails
+
+mkdir $LDAP2DNSDIR
+mkdir $LDAP2DNSDIR/env
+mkdir $LDAP2DNSDIR/log
+mkdir $LDAP2DNSDIR/log/main
+touch $LDAP2DNSDIR/log/status
+
+cat << EOF_run > $LDAP2DNSDIR/run
 #!/bin/sh
 exec 2>&1
-exec envdir ./env softlimit -d250000 /usr/bin/ldap2dns -e "cd /var/tinydns/root && /usr/bin/tinydns-data"
+exec setuidgid $LDAP2DNSUSER envdir ./env softlimit -d250000 /usr/bin/ldap2dns -e "cd $TINYDNSDIR && tinydns-data"
 EOF_run
 
-chmod +t ldap2tinydns
-chmod 755 ldap2tinydns/run
-echo "/var/tinydns/root" > ldap2tinydns/env/TINYDNSDIR
-echo "60" > ldap2tinydns/env/LDAP2DNS_UPDATE
-echo "data" > ldap2tinydns/env/LDAP2DNS_OUTPUT
+chmod +t $LDAP2DNSDIR
+chmod 755 $LDAP2DNSDIR/run
+echo "$TINYDNSDIR" > $LDAP2DNSDIR/env/TINYDNSDIR
+echo "60" > $LDAP2DNSDIR/env/LDAP2DNS_UPDATE
+echo "data" > $LDAP2DNSDIR/env/LDAP2DNS_OUTPUT
 
-cat << EOF_logrun > ldap2tinydns/log/run
+cat << EOF_logrun > $LDAP2DNSDIR/log/run
 #!/bin/sh
-exec setuidgid nobody multilog t ./main
+exec setuidgid $LDAP2DNSLOGUSER multilog t ./main
 EOF_logrun
 
-chown nobody.nobody ldap2tinydns/log/main
-chmod g+s ldap2tinydns/log/main
-chmod 755 ldap2tinydns/log/run
-chown nobody.nobody ldap2tinydns/log/status
+chown $LDAP2DNSLOGUSER:$LDAP2DNSLOGUSER $LDAP2DNSDIR/log/main
+chmod g+s $LDAP2DNSDIR/log/main
+chmod 755 $LDAP2DNSDIR/log/run
+chown $LDAP2DNSLOGUSER:$LDAP2DNSLOGUSER $LDAP2DNSDIR/log/status
 
 echo "To supervise ldap2dns do a symbolic link from /service onto ldap2dns"
+echo "For proper operation, ensure $LDAP2DNSUSER has write access to $TINYDNSDIR"
 
