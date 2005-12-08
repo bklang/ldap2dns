@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+#use POSIX qw(strftime):
 
 my $file = $ARGV[0];
 my $output = $ARGV[1];
@@ -10,6 +11,7 @@ my %domains; # Keep track of which domains for which we have
              # already written an SOA
 my $outfh;
 my $rejfh;
+#my $newserial = strftime("%Y%m%d01");
 
 if (!defined($file)) {
     print STDERR "Must specify path to 'data' file to read\n";
@@ -81,8 +83,8 @@ LINE: while(<DATA>) {
             print $outfh "objectClass: dnszone\n";
             print $outfh "cn: $domain\n";
             print $outfh "dnszonename: $domain\n";
-            if ($master) { print $outfh "dnszonemaster: $master\n"; }
-            if ($admin) { print $outfh "dnsadminmailbox: $admin\n"; }
+            print $outfh "dnszonemaster: $master\n";
+            print $outfh "dnsadminmailbox: $admin\n";
             if ($serial) { print $outfh "dnsserial: $serial\n"; }
             if ($refresh) { print $outfh "dnsrefresh: $refresh\n"; }
             if ($retry) { print $outfh "dnsretry: $retry\n"; }
@@ -115,7 +117,9 @@ LINE: while(<DATA>) {
             print $outfh "objectClass: top\n";
             print $outfh "objectClass: dnszone\n";
             print $outfh "cn: $domain\n";
-            print $outfh "dnszonename: v-office.biz\n";
+            print $outfh "dnszonename: $domain\n";
+            print $outfh "dnszonemaster: $x\n";
+            print $outfh "dnsadminmailbox: hostmaster\@$domain\n";
             if (defined($ttl)) { print $outfh "dnsttl: $ttl\n"; }
             if (defined($timestamp)) { print $outfh "dnstimestamp: $timestamp\n"; }
             if (defined($loc)) { print $outfh "dnslocation: $loc\n"; }
@@ -159,9 +163,9 @@ LINE: while(<DATA>) {
             print $outfh "objectClass: dnszone\n";
             print $outfh "objectClass: dnsrrset\n";
             print $outfh "cn: $id\n";
-            print $outfh "dnstype: a\n";
+            print $outfh "dnstype: ns\n";
             print $outfh "dnsdomainname: $fqdn.\n";
-            if ($x) { print $outfh "dnscname: $x\n"; }
+            if ($x) { print $outfh "dnscname: $x.\n"; }
             if ($ip) { print $outfh "dnsipaddr: $ip\n"; }
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
@@ -190,7 +194,7 @@ LINE: while(<DATA>) {
             print $outfh "dnstype: ns\n";
             print $outfh "dnsdomainname: $fqdn.\n";
             if ($ip) { print $outfh "dnsipaddr: $ip\n"; }
-            if ($x) { print $outfh "dnscname: $x\n"; }
+            if ($x) { print $outfh "dnscname: $x.\n"; }
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
             if ($loc) { print $outfh "dnsloc: $loc\n"; }
@@ -271,7 +275,7 @@ LINE: while(<DATA>) {
             print $outfh "dnstype: mx\n";
             print $outfh "dnsdomainname: $fqdn.\n";
             if ($ip) { print $outfh "dnsipaddr: $ip\n" };
-            if ($x) { print $outfh "dnscname: $x\n"; }
+            if ($x) { print $outfh "dnscname: $x.\n"; }
             if ($dist) { print $outfh "dnspreference: $dist\n"; }
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
