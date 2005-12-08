@@ -59,6 +59,8 @@ make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 %doc doc/README.html 
 %doc doc/example.ldif
 %doc import.pl
+%doc scripts/axfr2ldap.pl
+%doc scripts/data2ldap.pl
 %config /etc/openldap/schema/ldap2dns.schema
 
 %pre

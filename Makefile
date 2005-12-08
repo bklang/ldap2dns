@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.30 2003/01/20 14:33:25 jrief Exp $ 
+# $Id: Makefile,v 1.36 2005/12/08 14:13:25 bklang Exp $ 
 VERSION=0.3.6
 RELEASE=3
 CC=gcc -O2
