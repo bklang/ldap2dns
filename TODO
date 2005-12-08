@@ -5,3 +5,14 @@
   DNS search base DN, possibly more) (2005/12/07 bklang)
 
 * Add possbility to search multiple LDAP hosts (2005/12/07 bklang)
+
+* Add support for DNS TXT records (2005/12/08 bklang)
+
+* Document scripts/* functionality (2005/12/08 bklang)
+
+--- Old TODOs from Jacob ---
+Version ?.?.? (next)
++ Make ldap2dns behave like a secondary nameserver by storing
+  the serial number, expire, refresh, retry and minimum values
+  in a record.
+

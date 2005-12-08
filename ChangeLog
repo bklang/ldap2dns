@@ -1,8 +1,3 @@
-Version ?.?.? (next)
-+ Make ldap2dns behave like a secondary nameserver by storing
-  the serial number, expire, refresh, retry and minimum values 
-  in a record.
-
 Version 0.3.6 (latest)
 + New maintainer: Ben Klang <ben@alkaloid.net>
 + Fixed bug with duplicate OIDs in dns.schema from partially applied patch
@@ -21,6 +16,9 @@ Version 0.3.6 (latest)
 + Updated FAQ
 + Deprecated askldap.c and askldap.h
 + Created TODO file
++ Added TinyDNS data file import script (scripts/data2ldap.pl)
++ Moved AXFR import script (formerly import.pl) to scripts/axfr2ldap.pl
++ Deprecated export-ldap.pl (Possibly old ldap2dns 0.2->0.3 upgrade script?)
 
 Version 0.3.5 - 2005/11/30
 + Added support for DNS SRV records
