@@ -1,8 +1,9 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c,v 1.33 2003/01/20 14:33:25 jrief Exp $
- * Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>
- * License: GPL version 2 or later. See http://www.fsf.org for details
+ * $Id: ldap2dns.c,v 1.36 2005/12/07 19:03:11 bklang Exp $
+ * Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>
+ * Copyright 2005 by Ben Klang <ben@alkaloid.net>
+ * License: GPL version 2. See http://www.fsf.org for details
  */
 
 #include <lber.h>
@@ -34,7 +35,8 @@ static int main_argc;
 static void print_version(void)
 {
 	printf("ldap2dns, version %s\n", VERSION);
-	printf("  Copyright 2000 by Jacob Rief <jacob.rief@tiscover.com>\n\n");
+	printf("  Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>\n\n");
+	printf("  Copyright 2000 by Ben Klang <ben@alkaloid.net>\n");
 }
 
 

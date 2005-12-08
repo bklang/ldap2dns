@@ -21,7 +21,7 @@ touch $LDAP2DNSDIR/log/status
 cat << EOF_run > $LDAP2DNSDIR/run
 #!/bin/sh
 exec 2>&1
-exec setuidgid $LDAP2DNSUSER envdir ./env softlimit -d250000 /usr/bin/ldap2dns -e "cd $TINYDNSDIR && tinydns-data"
+exec setuidgid $LDAP2DNSUSER envdir ./env softlimit -d250000 /usr/bin/ldap2dns -e "cd \$TINYDNSDIR && tinydns-data"
 EOF_run
 
 chmod +t $LDAP2DNSDIR

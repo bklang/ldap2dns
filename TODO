@@ -1,2 +1,7 @@
 * Add support for configuring basedn, binddn, bindpw, and execute command via
   environment variables. (2005/12/07 bklang)
+
+* Add support for reading more config params out of /etc/ldap.conf (at least 
+  DNS search base DN, possibly more) (2005/12/07 bklang)
+
+* Add possbility to search multiple LDAP hosts (2005/12/07 bklang)
