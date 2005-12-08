@@ -7,7 +7,7 @@
 # remember to allow zone transfers from Your nameserver
 my $LDAPHOST = "localhost";
 my $LDAPBINDDN = "uid=root,o=tiscover";
-my $LDAPPASSWD = "1Fnegu!";
+my $LDAPPASSWD = "XXXXXXX";
 my $BASEDN = "ou=dns,o=tiscover";
 
 ###### don't edit below this line ######
