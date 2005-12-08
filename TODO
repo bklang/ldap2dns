@@ -1,3 +1,4 @@
+# $Id $
 * Add support for configuring basedn, binddn, bindpw, and execute command via
   environment variables. (2005/12/07 bklang)
 

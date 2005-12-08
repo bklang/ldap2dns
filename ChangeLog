@@ -1,3 +1,5 @@
+# $Id $
+
 Version 0.3.6 (latest)
 + New maintainer: Ben Klang <ben@alkaloid.net>
 + Fixed bug with duplicate OIDs in dns.schema from partially applied patch
