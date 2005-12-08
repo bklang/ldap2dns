@@ -119,7 +119,7 @@ LINE: while(<DATA>) {
             print $outfh "cn: $domain\n";
             print $outfh "dnszonename: $domain\n";
             print $outfh "dnszonemaster: $x\n";
-            print $outfh "dnsadminmailbox: hostmaster\@$domain\n";
+            print $outfh "dnsadminmailbox: hostmaster.$domain\n";
             if (defined($ttl)) { print $outfh "dnsttl: $ttl\n"; }
             if (defined($timestamp)) { print $outfh "dnstimestamp: $timestamp\n"; }
             if (defined($loc)) { print $outfh "dnslocation: $loc\n"; }

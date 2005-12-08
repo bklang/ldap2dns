@@ -6,9 +6,15 @@
 
 * Add possbility to search multiple LDAP hosts (2005/12/07 bklang)
 
-* Add support for DNS TXT records (2005/12/08 bklang)
+* Document support for each DNS record type (2005/12/08 bklang)
 
 * Document scripts/* functionality (2005/12/08 bklang)
+
+* Modify scripts/data2ldap.pl to merge multiple A records for a single
+  host in data file into single object in LDAP (2005/12/08 bklang)
+
+* Clean up DNS TXT support: text current requires a trailing '.', probably
+  should introduce a new attribute for DNS TXT so it is unambiguous
 
 --- Old TODOs from Jacob ---
 Version ?.?.? (next)
