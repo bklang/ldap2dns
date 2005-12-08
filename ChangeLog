@@ -20,6 +20,7 @@ Version 0.3.6 (latest)
 + Altered default behavior (via ldap2dns-conf) to run ldap2dns as non-root
 + Updated FAQ
 + Deprecated askldap.c and askldap.h
++ Created TODO file
 
 Version 0.3.5 - 2005/11/30
 + Added support for DNS SRV records

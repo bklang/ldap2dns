@@ -61,7 +61,18 @@ make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 %doc import.pl
 %config /etc/openldap/schema/ldap2dns.schema
 
+%pre
+/usr/sbin/groupadd -g 161 -r ldap2dns >/dev/null 2>/dev/null || :
+/usr/sbin/groupadd -g 162 -r l2dnslog >/dev/null 2>/dev/null || :
+/usr/sbin/useradd -r -o -g ldap2dns -u 161 -c "LDAP2DNS Daemon" \
+                  -s /bin/false -d /nonexistant ldap2dns 2> /dev/null || :
+
+/usr/sbin/useradd -r -o -g l2dnslog -u 162 -c "LDAP2DNS Logging Daemon" \
+                  -s /bin/false -d /nonexistant l2dnslog 2> /dev/null || :
+
 %changelog
+* Wed Dec 07 2005 Ben Klang <ben@alkaloid.net>
+- Added user and group creation
 * Sun Dec 04 2005 Ben Klang <ben@alkaloid.net>
 - Updated Specfile to version 0.3.6
 * Wed Dec 06 2000 Jacob Rief <jacob.rief@tiscover.com>
