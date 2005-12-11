@@ -2,7 +2,7 @@
 # $Id$
 use strict;
 use warnings;
-#use POSIX qw(strftime):
+use POSIX qw(strftime);
 
 my $file = $ARGV[0];
 my $output = $ARGV[1];
@@ -12,27 +12,41 @@ my %domains; # Keep track of which domains for which we have
              # already written an SOA
 my $outfh;
 my $rejfh;
-#my $newserial = strftime("%Y%m%d01");
+my $newserial = strftime("%Y%m%d01", localtime);
+my $errorrecs = 0;
 
 if (!defined($file)) {
-    print STDERR "Must specify path to 'data' file to read\n";
-    exit 1;
+    print STDERR "\n";
+    print STDERR "        Must specify path to 'data' file to read\n";
+    print STDERR "\n";
+    usage();
+    die("Should never get here\n");
 }
 
-if (!defined($output) || $output eq '-') {
+if (!defined($output)) {
+    print STDERR "\n";
+    print STDERR "        Must specify path to output LDIF data\n";
+    print STDERR "\n";
+    usage();
+    die("Should never get here\n");
+}
+if (!defined($basedn)) {
+    print STDERR "\n";
+    print STDERR "        Must specify a base DN as the third argument\n";
+    print STDERR "\n";
+    usage();
+    die("Should never get here\n");
+}
+
+if ($output eq '-') {
     $output = "/dev/stdout";
+    # Rejects are already printed to STDERR by default.  No need to duplicate
     $rejout = "/dev/null";
 } else {
     $rejout = "$output.rej";
 }
 open($outfh, ">$output") or die ("Unable to open $output for writing!");
 open($rejfh, ">$rejout") or die ("Unable to open $rejout for writing");
-
-if (!defined($basedn)) {
-    print STDERR "Must specify a base DN as the third argument\n";
-    exit 1;
-}
-
 
 # We run in two iterations.  The first attempts to enumerate all zones
 # for which we have records and create SOAs in LDAP.  The reason for this is
@@ -51,6 +65,7 @@ LINE: while(<DATA>) {
         /^-/ && do {
             # Found a disabled A record
             print STDERR "Ignoring disabled record: $_\n";
+            $errorrecs++;
             print $rejfh "$_\n";
             next LINE;
         };
@@ -86,7 +101,11 @@ LINE: while(<DATA>) {
             print $outfh "dnszonename: $domain\n";
             print $outfh "dnszonemaster: $master\n";
             print $outfh "dnsadminmailbox: $admin\n";
-            if ($serial) { print $outfh "dnsserial: $serial\n"; }
+            if ($serial) {
+                print $outfh "dnsserial: $serial\n";
+            } else {
+                print $outfh "dnsserial: $newserial\n";
+            }
             if ($refresh) { print $outfh "dnsrefresh: $refresh\n"; }
             if ($retry) { print $outfh "dnsretry: $retry\n"; }
             if ($expire) { print $outfh "dnsexpire: $expire\n"; }
@@ -121,6 +140,7 @@ LINE: while(<DATA>) {
             print $outfh "dnszonename: $domain\n";
             print $outfh "dnszonemaster: $x\n";
             print $outfh "dnsadminmailbox: hostmaster.$domain\n";
+            print $outfh "dnsserial: $newserial\n";
             if (defined($ttl)) { print $outfh "dnsttl: $ttl\n"; }
             if (defined($timestamp)) { print $outfh "dnstimestamp: $timestamp\n"; }
             if (defined($loc)) { print $outfh "dnslocation: $loc\n"; }
@@ -288,6 +308,7 @@ LINE: while(<DATA>) {
         /^'/ && do {
             # Currently unsupported
             print STDERR "Ignoring unsupported TXT record: $_\n";
+            $errorrecs++;
             print $rejfh "$_\n";
             next LINE;
             # Found an MX
@@ -368,15 +389,45 @@ LINE: while(<DATA>) {
         /^:/ && do {
             # Found unsupported "unknown record"
             print STDERR "Ignoring \"unknown record\": $_\n";
+            $errorrecs++;
             print $rejfh "$_\n";
             next LINE;
         }
     } # End for($_) block
 } # End LINE while(<DATA>)
+print STDERR "\n";
+if ($errorrecs) {
+    print STDERR "$errorrecs records were found containing errors.  Please inspect $rejout\n";
+    print STDERR "for details.  DNS TXT and TinyDNS \"unknown record\" formats are not supported\n";
+}
+
+print STDERR "Completed successfully\n";
+exit 0;
 
 sub getdomain
 {
     my $fqdn = shift(@_);
     $fqdn =~  /\.*([A-Za-z0-9\-]+\.[A-Za-z0-9\-]+)\.*$/;
     return $1;
+}
+
+sub usage
+{
+    print STDERR "Usage: $0 <input> <output> <basedn>\n";
+    print STDERR "\n";
+    print STDERR "This script takes a standard TinyDNS \"data\" file as input\n";
+    print STDERR "and generates an LDIF format output suitable for use with\n";
+    print STDERR "this \"ldap2dns\" package.  If any unsupported or otherwise erroring records\n";
+    print STDERR "are found in the input, they are printed to both STDERR as well as\n";
+    print STDERR "\"<output>.rej\" ,  Currently unsupported are DNS TXT and the\n";
+    print STDERR "TinyDNS \"unknown record\" format.  There is planned support for\n";
+    print STDERR "DNS TXT and DNS SRV (in \"unknown record\" format) in the near future\n";
+    print STDERR "\n";
+    print STDERR "<output> may be either a filename or \"-\" for STDOUT.  If STDOUT is used\n";
+    print STDERR "as the output then no <output>.rej file is created and error records\n";
+    print STDERR "are only printed to STDERR\n";
+    print STDERR "\n";
+    print STDERR "Example: $0 data data.ldif ou=DNS,dc=example,dc=com\n";
+    print STDERR "\n";
+    exit 1;
 }

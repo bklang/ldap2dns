@@ -17,7 +17,7 @@ BuildRequires: %OPENLDAPPKG%-devel
 Summary:	LDAP to DNS gateway
 Packager:	Ben Klang <ben@alkaloid.net>
 Vendor:		Alkaloid Networks
-Name:		ldap2dns
+Name:		ldap2dns-new
 Version:	%VERSION%
 Release:	%RELEASE%
 License:	GPL
