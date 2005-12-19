@@ -7,7 +7,7 @@ TINYDNSDIR=$4
 
 if [ -z "$LDAP2DNSUSER" -o -z "$LDAP2DNSLOGUSER" -o -z "$LDAP2DNSDIR" -o \
      -z "$TINYDNSDIR" ]; then
-    echo "usage: $0 acct logacct /path/to/supervise /path/to/tinydns-supervise" >&2
+    echo "usage: $0 acct logacct /path/to/ldap2dns/dir /path/to/tinydns/root" >&2
     exit 1
 fi
 

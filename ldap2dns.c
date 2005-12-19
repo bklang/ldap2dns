@@ -36,7 +36,8 @@ static void print_version(void)
 {
 	printf("ldap2dns, version %s\n", VERSION);
 	printf("  Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>\n\n");
-	printf("  Copyright 2000 by Ben Klang <ben@alkaloid.net>\n");
+	printf("  Copyright 2005 by Ben Klang <ben@alkaloid.net>\n");
+	printf("  http://projects.alkaloid.net\n");
 }
 
 
