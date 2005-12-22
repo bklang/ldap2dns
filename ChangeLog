@@ -6,6 +6,7 @@ Version 0.3.7 (latest)
 + Changed port declarations/format strings from int to unsigned short
   to match standards
 + Updated doc/README.html
++ Added security audit result patch from Erik Cabetas (erik.cabetas.com)
 
 Version 0.3.6
 + New maintainer: Ben Klang <ben@alkaloid.net>
