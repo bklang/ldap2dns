@@ -15,7 +15,7 @@
 #include <unistd.h>
 
 #define UPDATE_INTERVALL 59
-#define LDAP_CONF "/etc/ldap/ldap.conf"
+#define LDAP_CONF "/etc/ldap.conf"
 #define OUTPUT_DATA 1
 #define OUTPUT_DB 2
 #define MAXHOSTS 10
@@ -100,11 +100,11 @@ static struct
 	char binddn[128];
 	char hostname[MAXHOSTS][128];
 	char urildap[MAXHOSTS][128];
-	int port[MAXHOSTS];
+	unsigned short port[MAXHOSTS];
 	char password[128];
 	int usedhosts;
 	int is_daemon;
-	int update_iv;
+	unsigned int update_iv;
 	unsigned int output;
 	int verbose;
 	char ldifname[128];
@@ -172,7 +172,8 @@ static void print_usage(void)
 
 static void parse_hosts(char* buf)
 {
-        int i, port, k;
+        int i, k;
+        unsigned short port;
         char value[128], rest[512];
 
         options.usedhosts = 0;
@@ -182,13 +183,15 @@ static void parse_hosts(char* buf)
 			if (!strncasecmp(buf, "ldap://", 7))
 				options.use_tls[i] = 1;
 			if ((k = sscanf(buf, "%128s %512[A-Za-z0-9 .:/_+-]", value, rest))>=1) {
-				strcpy(options.urildap[i], value);
+                strncpy(options.urildap[i], value, sizeof(options.urildap[i]));
+                options.urildap[i][ sizeof(options.urildap[i]) -1 ] = '\0';
+
 				options.usedhosts++;
 				if (k==1)
 					break;
 				buf = rest;
 			} else break;
-		} else if ((k = sscanf(buf, "%128s:%d %512[A-Za-z0-9 .:_+-]", value, &port, rest))>=2) {
+		} else if ((k = sscanf(buf, "%128s:%hd %512[A-Za-z0-9 .:_+-]", value, &port, rest))>=2) {
                         strcpy(options.hostname[i], value);
                         options.port[i] = port;
                         options.usedhosts++;
@@ -221,19 +224,23 @@ static int parse_options()
 	if (ldap_conf = fopen(LDAP_CONF, "r")) {
 		while(fgets(buf, 256, ldap_conf)!=0) {
 			int i;
-			if (sscanf(buf, "BASE %128s", value)==1)
-				strcpy(options.searchbase, value);
+			if (sscanf(buf, "BASE %128s", value)==1){
+				strncpy(options.searchbase, value, sizeof(options.searchbase));
+				options.searchbase[sizeof(options.searchbase) -1] = '\0';
+			}
 			if (sscanf(buf, "URI %512[A-Za-z0-9 .:/_+-]", value)==1)
 				parse_hosts(value);
 			if (sscanf(buf, "HOST %512[A-Za-z0-9 .:_+-]", value)==1)
 				parse_hosts(value);
-			if (sscanf(buf, "PORT %d", &len)==1)
+			if (sscanf(buf, "PORT %hd", &len)==1)
 				for (i = 0; i<MAXHOSTS; i++)
 					options.port[i] = len;
 			if (sscanf(buf, "BINDDN %128s", value)==1) {
-				strcpy(options.binddn, value);
+				strncpy(options.binddn, value, sizeof(options.binddn));
+				options.binddn[ sizeof(options.binddn) -1] = '\0';
 				if (sscanf(buf, "BINDPW %128s", value)==1)
-					strcpy(options.password, value);
+					strncpy(options.password, value, sizeof(options.password));
+					options.password[ sizeof(options.password) -1 ] = '\0';
 			}
 		}
 		fclose(ldap_conf);
@@ -261,10 +268,13 @@ static int parse_options()
 	}
 	ev = getenv("LDAP2DNS_BINDDN");
 	if (ev) {
-		strncpy(options.binddn, ev, 128);
+		strncpy(options.binddn, ev, sizeof(options.binddn));
+		options.binddn[ sizeof(options.binddn)-1] = '\0';
 		ev = getenv("LDAP2DNS_PASSWORD");
-		if (ev)
-			strncpy(options.password, ev, 128);
+		if (ev){
+			strncpy(options.password, ev, sizeof(options.password));
+			options.password[ sizeof(options.password) -1 ] = '\0';
+		}
 	}
 	options.verbose = 0;
 	options.ldifname[0] = '\0';
@@ -277,7 +287,8 @@ static int parse_options()
 		}
 		switch (len) {
 		    case 'b':
-			strcpy(options.searchbase, optarg);
+			strncpy(options.searchbase, optarg, sizeof(options.searchbase));
+			options.searchbase[ sizeof(options.searchbase) -1] = '\0';
 			break;
 		    case 'u':
 			if (sscanf(optarg, "%d", &options.update_iv)!=1)
@@ -285,21 +296,26 @@ static int parse_options()
 			if (options.update_iv<=0) options.update_iv = 1;
 			break;
 		    case 'D':
-			strcpy(options.binddn, optarg);
+			strncpy(options.binddn, optarg, sizeof(options.binddn));
+			options.binddn[ sizeof(options.binddn) -1 ] = '\0';
 			break;
 		    case 'h':
-			strcpy(options.hostname[0], optarg);
+			strncpy(options.hostname[0], optarg, sizeof(options.hostname[0]));
+			options.hostname[0][ sizeof(options.hostname[0]) -1 ] = '\0';
 			options.usedhosts = 1;
 			break;
 		case 'H':
-			strcpy(options.urildap[0], optarg);
+			strncpy(options.urildap[0], optarg, sizeof(options.urildap[0]));
+			options.urildap[0][ sizeof( options.urildap[0] ) -1 ] = '\0';
 			options.usedhosts = 1;
 			break;
 		    case 'L':
 			if (optarg==NULL)
 				strcpy(options.ldifname, "-");
-			else
-				strcpy(options.ldifname, optarg);
+			else{
+				strncpy(options.ldifname, optarg, sizeof(options.ldifname));
+				options.ldifname[ sizeof( options.ldifname ) -1 ] = '\0';
+			}
 			break;
 		    case 'o':
 			if (strcmp(optarg, "data")==0)
@@ -308,7 +324,7 @@ static int parse_options()
 				options.output |= OUTPUT_DB;
 			break;
 		    case 'p':
-			if (sscanf(optarg, "%d", &options.port[0])!=1)
+			if (sscanf(optarg, "%hd", &options.port[0])!=1)
 				options.port[0] = LDAP_PORT;
 			break;
 		    case 'v':
@@ -321,11 +337,13 @@ static int parse_options()
 			print_version();
 			exit(0);
 		    case 'w':
-			strcpy(options.password, optarg);
+			strncpy(options.password, optarg, sizeof(options.password));
+			options.password[ sizeof( options.password ) ] = '\0';
 			memset(optarg, 'x', strlen(options.password));
 			break;
 		    case 'e':
-			strcpy(options.exec_command, optarg);
+			strncpy(options.exec_command, optarg, sizeof(options.exec_command));
+			options.exec_command[ sizeof( options.exec_command ) -1 ] = '\0';
 			break;
 		    default:
 			print_usage();
@@ -443,9 +461,10 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		}
 		if (ipdx==0 && sscanf(rr->ipaddr[0], "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
 			/* lazy user, used DNSipaddr for reverse lookup */
-			sprintf(buf, "%d.%d.%d.%d.in-addr.arpa", ip[3], ip[2], ip[1], ip[0]);
+			snprintf(buf, sizeof(buf), "%d.%d.%d.%d.in-addr.arpa", ip[3], ip[2], ip[1], ip[0]);
 		} else {
-			strcpy(buf, rr->dnsdomainname);
+			strncpy(buf, rr->dnsdomainname, sizeof(buf));
+			buf[ sizeof(buf) -1 ] = '\0';
 		}
 		if (tinyfile)
 			fprintf(tinyfile, "^%s:%s:%s:%s:%s\n", buf, rr->cname, rr->ttl, rr->timestamp, rr->location);
@@ -486,7 +505,7 @@ static void parse_rr(struct resourcerecord* rr)
 	sscanf(rr->rr, "%16s %16s %64s %64s", rr->class, rr->type, word1, word2);
 	if (strcasecmp(rr->type, "NS")==0) {
 		if (sscanf(word1, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
-			sprintf(rr->ipaddr[0], "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+			snprintf(rr->ipaddr[0], sizeof(rr->ipaddr[0]), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 		} else {
 			int len = strlen(word1);
 			expand_domainname(rr->cname, word1, len);
@@ -495,14 +514,14 @@ static void parse_rr(struct resourcerecord* rr)
 		if (sscanf(word1, "%s", rr->preference)!=1)
 			rr->preference[0] = '\0';
 		if (sscanf(word2, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
-			sprintf(rr->ipaddr[0], "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+			snprintf(rr->ipaddr[0], sizeof(rr->ipaddr[0]), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 		} else {
 			int len = strlen(word2);
 			expand_domainname(rr->cname, word2, len);
 		}
 	} else if (strcasecmp(rr->type, "A")==0) {
 		if (sscanf(word1, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4)
-			sprintf(rr->ipaddr[0], "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+			snprintf(rr->ipaddr[0], sizeof(rr->ipaddr[0]), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 		else
 			rr->ipaddr[0][0] = '\0';
 	} else if (strcasecmp(rr->type, "PTR")==0) {
@@ -585,7 +604,7 @@ static void read_resourcerecords(char* dn, int znix)
 						for (ipaddresses = 0; bvals[ipaddresses] && ipaddresses<256; ipaddresses++) {
 							rr.ipaddr[ipaddresses][0] = '\0';
 							if (sscanf(bvals[ipaddresses]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
-								sprintf(rr.ipaddr[ipaddresses], "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+								snprintf(rr.ipaddr[ipaddresses], sizeof(rr.ipaddr[ipaddresses]), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 								if (options.ldifname[0])
 									fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
 							}
@@ -593,7 +612,7 @@ static void read_resourcerecords(char* dn, int znix)
 					} else if (strcasecmp(attr, "DNScipaddr")==0) {
 						int ip[4];
 						if (sscanf(bvals[0]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
-							sprintf(rr.cipaddr, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+							snprintf(rr.cipaddr, sizeof(rr.cipaddr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 							if (options.ldifname[0])
 								fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
 						}
@@ -855,7 +874,7 @@ static void read_dnszones(void)
 				printf("zonename: %s\n", zone.domainname);
 			if (options.output&OUTPUT_DB) {
 				char namedzonename[128];
-				sprintf(namedzonename, "%s.db", zone.domainname);
+				snprintf(namedzonename, sizeof(namedzonename), "%s.db", zone.domainname);
 				if ( !(namedzone = fopen(namedzonename, "w")) )
 					die_exit("Unable to open db-file for writing");
 			}

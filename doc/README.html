@@ -1,353 +1,738 @@
-<H1 align=center>LDAP to DNS gateway</H1>
-<P>
-<B>ldap2dns</B> is a program to create DNS (Domain Name Service) records directly
-from a LDAP directory.  It can and should be be used to replace the secondary
-name-server by a second primary one.<BR>
-<B>ldap2dns</B> reduces all kind of administration overhead:
-No more flat file editing, no more zone file editing. After having installed
-<B>ldap2dns</B>, the administrator only has to access the LDAP directory.<BR>
-Optionally she can add access control for each zone, create a GUI
-and add all other kind of zone and resource record information without
-interfering with the DNS server.<BR>
-<B>ldap2dns</B> is designed to write ASCII data files used by <I>tinydns</I>
-from the <I>djbdns</I> package, but also may be used to write .db-files used
-by <I>named</I> as found in the <I>BIND</I> package.<BR>
-<P>
+<!-- <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"> -->
+<!-- <html><title>ldap2dns</title>
+<body> -->
+<div id="project">
+<script src="/toc.js" type="text/javascript"></script>
+<h1 align="center">LDAP to DNS gateway</h1>
+<p style="font-size: 14px"><b>ldap2dns</b> is a program to read DNS (Domain Name Service)
+records from an LDAP directory and format them into flat files suitable for TinyDNS (or Bind).</p>
+<p><b>ldap2dns</b> reduces all kind of administration overhead: No
+more flat file editing, no more zone file editing. After having
+installed <b>ldap2dns</b>, the administrator only has to access the
+LDAP directory.<br />
+Optionally access control can be configured for each zone, GUIs can
+be more easily implemented, and add all other kind of zone and resource
+record information can be managed without interfering with the DNS server.<br />
+<b>ldap2dns</b> is designed to write ASCII data files used by
+<a href="http://cr.yp.to/djbdns/tinydns.html"><i>tinydns</i></a> from the <a href="http://cr.yp.to/"><i>djbdns</i></a> package, but also may be used
+to write .db-files used by <i>named</i> as found in the <i>BIND</i>
+package.</p>
 
-<H3>1. Introduction</H3>
-Often it is desirable to store DNS information in a database rather than
-in flat text files. This can greatly help to reduce administration overhead
-since associate information such as billing contact, account management, etc.
-can be stored and processed inside the same database. Also due to the nature of
-DNS, information must be stored redundantly on two or more hosts. 
-The classical data replication through zone transfer is unreliable, insecure
-and difficult to administer.<BR>
-To solve this problem some proprietary attempts have been proposed to
-store DNS information in relational databases. The nature of DNS, however,
-is hierarchical and such should the database be. Using a relational database
-to store DNS information is undesirable, because it becomes difficult
-to store free form information. Within a hierachical data scheme, the
-administrator might define more than one IP-address for each canonical name.
-To implement such a feature in a relational database without breaking the 
-normalization rules, one would have to add another table.<BR>
-One of the most widely spread hierarchical database protocols is LDAP.
-<B>ldap2dns</B> retrieves DNS information stored in an LDAP directory service
-and generates a file suitable for name-servers.<BR>
-Actually the most widely spread name-servers
-<A HREF="http://www.isc.org/products/BIND/">named</A> and
-<A HREF="http://cr.yp.to/djbdns/tinydns.html">tinydns</A> are
-supported. <B>ldap2dns</B> specially has been designed to work with 
-tinydns and is the favored name server daemon for the author of this program. 
-<B>ldap2dns</B> can also generate files suitable for <I>named</I> version 8,
-but this feature is not well supported.
-There is a 
-<A HREF="http://www.alternic.org/drafts/drafts-m-n/draft-miller-dns-ldap-schema-00.txt">
-RFC</A> for a format description how to store DNS information in LDAP. 
-This paper a draft RFC which expired in February 1999, looks as if it has been 
-specially designed to be used by <I>named</I>. This scheme
-does not have strict attribute-value-pair mapping, making it difficult to be used by
-user interfaces. It also lacks of an implementation (or I have never heard of any).<BR>
-Since <I>tinydns</I> is going another descriptive way. Therefore I implemented a similar
-object-scheme more suitable for <I>tinydns</I>. Two object-classes have been defined. 
-<B>DNSzone</B> stores all the information to define a DNS zone, such as the SOA 
-(Start Of Authority), serial numbers etc. <B>DNSrrset</B> is used to store the information 
-for a single resource record, such as the domain name, IP-addresses, class and type.<BR>
-Here are the tables:
-<P>
-<H4>DNSzone</H4>
-This object-class represents a DNS zone. It is the container for all the resource records
-within a zone. Zones can be primary or secondary. If used in conjunction with
-<I>tinydns</I> zones are always primary. Secondary zones don't make sense anyway!
-In addition to being a container, the zone object has attributes related to
-the management of the zone. These include the zone's SOA information. Each zone-object
-can have none to many children of class <B>DNSrrset</B>.<BR>
 
-<TABLE bgcolor=#EEEEEE>
-<TR><TH>ATTRIBUTE</TH><TH>VALUE</TH><TH>Comment</TH></TR>
-<TR><TD>objectclass</TD><TD>DNSzone</TD><TD>required</TD></TR>
-<TR><TD>cn</TD><TD><I>common name</I></TD><TD>required</TD></TR>
-<TR><TD>DNSzonename</TD><TD><I>Name of the zone</I></TD><TD>required, multivalued</TD></TR>
-<TR><TD>DNSserial</TD><TD><I>Serial number of SOA</I></TD><TD>optional</TD></TR>
-<TR><TD>DNSrefresh</TD><TD><I>Refresh time of SOA</I></TD><TD>optional, only used for zone transfers</TD></TR>
-<TR><TD>DNSretry</TD><TD><I>Retry time of SOA</I></TD><TD>optional, only used for zone transfers</TD></TR>
-<TR><TD>DNSexpire</TD><TD><I>Expire time of SOA</I></TD><TD>optional, only used for zone transfers</TD></TR>
-<TR><TD>DNSminimum</TD><TD><I>Minimum time to live</I></TD><TD>optional, only used for zone transfers</TD></TR>
-<TR><TD>DNSadminmailbox</TD><TD><I>Hostmaster's contact address</I></TD><TD>optional</TD></TR>
-<TR><TD>DNSzonemaster</TD><TD><I>Primary nameserver for this zone</I></TD><TD>optional</TD></TR>
-<TR><TD>DNStype</TD><TD>SOA</TD><TD>must be SOA</TD></TR>
-<TR><TD>DNSclass</TD><TD>IN</TD><TD>must be IN</TD></TR>
-<TR><TD>DNSttl</TD><TD><I>time to live</I></TD><TD>optional, only used with tinydns</TD></TR>
-<TR><TD>DNStimestamp</TD><TD><I>timestamp</I></TD><TD>optional, only used with tinydns</TD></TR>
-</TABLE>
-<UL>
-<LI><B>DNSzonename:</B> This field is required to describe the zone's domain name, for instance
-myorg.com. More than one <B>DNSzonename</B> my be specified for a <B>DNSzone</B> so that the
-same host is accessable with different zonenames.</LI>
+<div id="toc"></div>
 
-<LI><B>DNSserial:</B> This is the serial number as used for BIND's zone transfers. Here it is
-used to inform <B>ldap2dns</B> that it has to rebuild its data-file. Without increasing the serial
-number <B>ldap2dns</B> will ignore all modifications until it is restarted.</LI>
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('Introduction', 'Introduction'));
+// -->
+</script>
+<noscript>
+<h3>Introduction</h3>
+</noscript>
+Often it is desirable to store DNS information in a database rather
+than in flat text files. This can greatly help to reduce
+administration overhead since associate information such as billing
+contact, account management, etc. can be stored and processed
+inside the same database. Also due to the nature of DNS,
+information must be stored redundantly on two or more hosts. The
+classical data replication through zone transfer is unreliable,
+insecure and difficult to administer.<br />
+To solve this problem some proprietary attempts have been proposed
+to store DNS information in relational databases. The nature of
+DNS, however, is hierarchical and such should the database be.
+Using a relational database to store DNS information is
+undesirable, because it becomes difficult to store free form
+information. Within a hierachical data scheme, the administrator
+might define more than one IP-address for each canonical name. To
+implement such a feature in a relational database without breaking
+the normalization rules, one would have to add another table.<br />
+One of the most widely spread hierarchical database protocols is
+LDAP. <b>ldap2dns</b> retrieves DNS information stored in an LDAP
+directory service and generates a file suitable for
+name-servers.<br />
+Actually the most widely spread name-servers <a href="http://www.isc.org/products/BIND/">named</a> and <a href="http://cr.yp.to/djbdns/tinydns.html">tinydns</a> are supported.
 
-<LI><B>DNSrefresh, DNSretry, DNSexpire, DNSminimum:</B> You may safly ignore these numbers
-if You don't do zone-transfers. Since Your secondary nameserver will connect to the LDAP
-server the same way Your primary does, You don't need zone-transfers anyway.</LI>
+<b>ldap2dns</b> specially has been designed to work with tinydns
+and is the favored name server daemon for the author of this
+program. <b>ldap2dns</b> can also generate files suitable for
+<i>named</i> version 8, but this feature is not well supported.
+There is a <a href="http://www.alternic.org/drafts/drafts-m-n/draft-miller-dns-ldap-schema-00.txt">
+RFC</a> for a format description how to store DNS information in
+LDAP. This paper a draft RFC which expired in February 1999, looks
+as if it has been specially designed to be used by <i>named</i>.
+This scheme does not have strict attribute-value-pair mapping,
+making it difficult to be used by user interfaces. It also lacks of
+an implementation (or I have never heard of any).<br />
+Since <i>tinydns</i> is going another descriptive way. Therefore I
+implemented a similar object-scheme more suitable for <i>tinydns</i>.
+<br />
 
-<LI><B>DNSzonemaster:</B> Here you specify the canonical name of your primary nameserver.</LI>
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('Quickstart', 'Quickstart'));
+// -->
+</script>
+<noscript>
+<h3>Installation</h3>
+</noscript>
+<ul>
+<li>Install an LDAP server such as <a href="www.openldap.org">openldap</a>. Other LDAP implementations may
+work but have not been tested. Also install the development
+libraries and include files.</li>
+<li>Install <a href="http://cr.yp.to/djbdns.html">djbdns</a> or if
+you really have to, go with BIND.<br />
+I suggest to install <i>tinydns</i> included in the <b>djbdns</b>
 
-<LI><B>DNSadminmailbox:</B> This is the contact address of Your DNS-administrator. The first dot
-is converted to a <I>@</I>.</LI>
-
-<LI><B>DNStype:</B> Must be <B>SOA</B> (Start Of Authority)</LI>
-
-<LI><B>DNSclass:</B> Must be <B>IN</B> (Internet, or do still use Chaosnet?)</LI>
-
-<LI><B>DNSttl:</B> This is the time-to-live value as used by <B>tinydns</B>.
-If TTL is nonzero (or omitted), the timestamp is a starting time from whereon this zone's
-information is valid. If TTL is zero, the timestamp is an ending time (``time to die'').</LI> 
-
-<LI><B>DNStimestamp:</B> This is the timestamp as used by <B>tinydns</B>. It represents a
-string as external TAI64 timestamp, printed as 16 lowercase hexadecimal characters</LI>
-</UL>
-<P>
-
-<H4>DNSrrset</H4>
-The Resource Record Set represents all of the resource records for
-a given host name within a zone. It must be a child of a DNSzone object.<BR>
-
-<TABLE bgcolor=#EEEEEE>
-<TR><TH>ATTRIBUTE</TH><TH>VALUE</TH><TH>Comment</TH></TR>
-<TR><TD>objectclass</TD><TD>DNSrrset</TD><TD>required</TD></TR>
-<TR><TD>cn</TD><TD><I>common name</I></TD><TD>required</TD></TR>
-<TR><TD>DNSdomainname</TD><TD><I>Name of this record</I></TD><TD>optional, relative to zonename</TD></TR>
-<TR><TD>DNSipaddr</TD><TD><I>IP address</I></TD><TD>optional, mutivalued</TD></TR>
-<TR><TD>DNScname</TD><TD><I>Canonical name</I></TD><TD>optional, without ending dot relative to zonename</TD></TR>
-<TR><TD>DNSpreference</TD><TD><I>integer</I></TD><TD>optional, only used for MX records</TD></TR>
-<TR><TD>DNStype</TD><TD>A, CNAME, NS, MX, PTR or TXT</TD><TD>must be any valid record type</TD></TR>
-<TR><TD>DNSclass</TD><TD>IN</TD><TD>must be IN</TD></TR>
-<TR><TD>DNSttl</TD><TD><I>time to live</I></TD><TD>optional, only used with tinydns</TD></TR>
-<TR><TD>DNStimestamp</TD><TD><I>timestamp</I></TD><TD>optional, only used with tinydns</TD></TR>
-</TABLE>
-<P>
-
-<UL>
-<LI><B>DNSrrset:</B> This object-class must be a direct child of DNSzone. Its <B>dn</B> should be 
-specified as <PRE>cn=<I>domainname</I>,cn=<I>zonename</I>,...</PRE></LI>
-
-<LI><B>DNSdomainname</B> This is the partial domain-name, ie. the part in front of the
-zone-name.</LI>
-
-<LI><B>DNSipaddr:</B> This specifies the IP-address in dotted format. It can be used for <B>DNSrrset</B>'s
-of type <B>A, NS, MX</B> or <B>PTR</B>. <B>DNSipaddr</B> is multivalued to specifiy more than one
-IP-address for a service. If used in <B>DNSrrset</B>'s with <B>DNStype</B> = <B>PTR</B> it
-overrides the old-fashioned form used in <B>DNSdomainname</B> such as 13.178.23.in-addr.arpa
-for reverse lookups.</LI>
-
-<LI><B>DNScname:</B> Whenever there is a mapping of a domain-name to a canonical name, use
-this attribute. <B>DNScname</B> may be used for <B>DNSrrset</B>'s with <B>DNStype CNAME,
-NS, MX, PTR or TXT</B>. If the last character of a CNAME is a dot its name is considered
-absolute. If it does not contain a dot, its name is prepended to the zone-name.</LI>
-
-<LI><B>DNSpreference:</B> This number is the mail-exchange preference as used by BIND.</LI>
-
-<LI><B>DNStype:</B> This must be <B>A, CNAME, NS, MX, PTR</B> or <B>TXT</B>. It specifies
-the DNSrrset type.</LI>
-
-<LI><B>DNSclass:</B> Must be <B>IN</B></LI>
-
-<LI><B>DNSttl:</B> This is the time-to-live value as used by <B>tinydns</B>.
-If TTL is non-zero (or omitted), the time-stamp is a starting time from where-on this zone's
-information is valid. If TTL is zero, the timestamp is an ending time (``time to die'').</LI> 
-
-<LI><B>DNStimestamp:</B> This is the timestamp as used by <B>tinydns</B>. It represents a
-string as external TAI64 time-stamp, printed as 16 lowercase hexadecimal characters</LI>
-</UL>
-<P>
-
-<H3>2. Installation</H3>
-<UL>
-<LI>Install an LDAP server such as <A HREF="www.openldap.org">openldap</A>. Other
-LDAP implementations may work but have not been tested. Also install the
-development libraries and include files.</LI>
-
-<LI>Install <A HREF="http://cr.yp.to/djbdns.html">djbdns</A> or if you really
-have to, go with BIND.<BR>
-I suggest to install <I>tinydns</I> included in the <B>djbdns</B> package, because it is
-safer, but You may have reasons why You want to use BIND.</LI>
-
-<LI>Install <B>ldap2dns</B><BR>
+package, because it is safer, but You may have reasons why You want
+to use BIND.</li>
+<li>Install <b>ldap2dns</b><br />
 Unpack the package and build it:
-<PRE>
-gzcat ldap2dns.tar.gz | tar x
-cd ldap2dns-version
-make
-make install
-</PRE>
-If you run <B>ldap2dns</B> togther with tinydns, go into
-/var/tinydns and run ldap2tinydns-conf.
-</LI>
+<pre>
+$ gzcat ldap2dns.tar.gz | tar x
+$ cd ldap2dns-version
+$ make
+$ make install
+</pre>
+Copy the file <i>ldap2dns.schema</i> into the directory
+/etc/openldap/schema. Add the following
+line to Your slapd.conf file:<br />
+<pre>
+include         /etc/openldap/schema/ldap2dns.schema
+</pre>
+Now restart your LDAP server.</li>
+<br />
+<i>Note: If you are running OpenLDAP 2.0 or earlier look for appropriate
+schema files for your version in the <b>deprecated/</b> subdirectory.  These
+files are known to work as of ldap2dns 0.3.5 but are no longer supported for future
+feature updates.</i><br />
+<br />
+<li>Start to populate your LDAP server with DNS information. As a
+first test do
+<pre>
+$ ldapadd -D "<i>binddn</i>" -w <i>password</i> &lt; example.ldif
+</pre>
+Replace 'myorg' and 'binddn' with whatever is appropriate on Your
+system. Start a search and see if something was added
+<pre>
+$ ldapsearch -D "<i>binddn</i>" "objectclass=dnsrrset"
+</pre></li>
+<li>Test <b>ldap2dns</b>
+<pre>
+$ ./ldap2dns -D "<i>binddn</i>" [ -b "<i>searchbase</i>" ] [ -w <i>passwd</i> ] -o data -o db -L
+</pre>
+This should create a 'data' file, a 'corp.local.db' file and should
+print the DNS content.<br />
+Note: The <i>data</i> file is text data which can be processed with
+<b>tinydns-data</b>. <i>corp.local.db</i> is the file as used by
+<b>named</b>. If You are using bind, You also have to adopt the
+file <i>/etc/named.conf</i> and You have to restart named.</li>
 
-<LI>Add the extra object-classes to the slapd.conf file.
-If You are using openldap-1.2.x:<BR>
-copy the files dns.oc.conf and dns.ac.conf into the directory /etc/openldap or
-appropriate and add the following two lines to Your slapd.conf file:<BR>
-<PRE>
-include         /etc/openldap/dns.at.conf
-include         /etc/openldap/dns.oc.conf
-</PRE>
-or, if You are using openldap-2.0.x:<BR>
-copy the file dns.schema-2.0 into the directory /etc/openldap/schema
-and rename it to dns.schema.
-If You are using openldap-2.2.x:<BR>
-copy the file dns.schema-2.2 into the directory /etc/openldap/schema
-and rename it to dns.schema.
-Add the following line to Your slapd.conf file:<BR>
-<PRE>
-include         /etc/openldap/schema/dns.schema
-</PRE>
-Now restart your LDAP server.</LI>
-<P>
+</ul>
+<br />
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('Configuration', 'Configuration'));
+// -->
+</script>
+<noscript>
+<h3>Configuration</h3>
+</noscript>
+Two object-classes have been defined.
+<em>DNSzone</em> stores all the information to define a DNS zone,
+such as the SOA (Start Of Authority), serial numbers etc.
+<em>DNSrrset</em> is used to store the information for a single
+resource record, such as the domain name, IP-addresses, class and
+type.<br />
+Here are the tables:
+<h4>DNSzone</h4>
+This object-class represents a DNS zone. It is the container for
+all the resource records within a zone. Zones can be primary or
+secondary. If used in conjunction with <i>tinydns</i> zones are
+always primary. Secondary zones don't make sense anyway! In
+addition to being a container, the zone object has attributes
+related to the management of the zone. These include the zone's SOA
+information. Each zone-object can have none to many children of
+class <b>DNSrrset</b>.<br />
 
-<LI>Start to populate your LDAP server with DNS information. As a first test do
-<PRE>
-$ ldapadd -D "<I>binddn</I>" -w <I>password</I> < example.ldif
-</PRE>
-Replace 'myorg' and 'binddn' with whatever is appropriate on Your system.
-Start a search and see if something was added
-<PRE>
-$ ldapsearch -D "<I>binddn</I>" "objectclass=dnsrrset" </LI>
-</PRE>
+<table bgcolor="#EEEEEE">
+<tr>
+<th>ATTRIBUTE</th>
+<th>VALUE</th>
+<th>Comment</th>
+</tr>
+<tr>
+<td>objectclass</td>
+<td>DNSzone</td>
+<td>required</td>
+</tr>
 
-<LI>Test <B>ldap2dns</B>
-<PRE>
-$ ./ldap2dns -D "<I>binddn</I>" [ -b "<I>searchbase</I>" ] [ -w <I>passwd</I> ] -o data -o db -L
-</PRE>
-This should create a 'data' file, a 'corp.local.db' file and should print the
-DNS content.<BR>
-Note: The <I>data</I> file is text data which can be processed with <B>tinydns-data</B>.
-<I>corp.local.db</I> is the file as used by <B>named</B>. If You are using bind, You also
-have to adopt the file <I>/etc/named.conf</I> and You have to restart named.</LI>
-</UL>
-<P>
+<tr>
+<td>cn</td>
+<td><i>common name</i></td>
+<td>required</td>
+</tr>
+<tr>
+<td>DNSzonename</td>
+<td><i>Name of the zone</i></td>
+<td>required, multivalued</td>
+</tr>
+<tr>
 
-<H3>3. Running ldap2dns</H3>
-If You are a tinydns user, run <B>ldap2dns</B> in /services/tinydns/root.<BR>
+<td>DNSserial</td>
+<td><i>Serial number of SOA</i></td>
+<td>optional</td>
+</tr>
+<tr>
+<td>DNSrefresh</td>
+<td><i>Refresh time of SOA</i></td>
+<td>optional, only used for zone transfers</td>
+</tr>
+<tr>
+<td>DNSretry</td>
+
+<td><i>Retry time of SOA</i></td>
+<td>optional, only used for zone transfers</td>
+</tr>
+<tr>
+<td>DNSexpire</td>
+<td><i>Expire time of SOA</i></td>
+<td>optional, only used for zone transfers</td>
+</tr>
+<tr>
+<td>DNSminimum</td>
+<td><i>Minimum time to live</i></td>
+
+<td>optional, only used for zone transfers</td>
+</tr>
+<tr>
+<td>DNSadminmailbox</td>
+<td><i>Hostmaster's contact address</i></td>
+<td>optional</td>
+</tr>
+<tr>
+<td>DNSzonemaster</td>
+<td><i>Primary nameserver for this zone</i></td>
+<td>optional</td>
+
+</tr>
+<tr>
+<td>DNStype</td>
+<td>SOA</td>
+<td>must be SOA</td>
+</tr>
+<tr>
+<td>DNSclass</td>
+<td>IN</td>
+<td>must be IN</td>
+</tr>
+
+<tr>
+<td>DNSttl</td>
+<td><i>time to live</i></td>
+<td>optional, only used with tinydns</td>
+</tr>
+<tr>
+<td>DNStimestamp</td>
+<td><i>timestamp</i></td>
+<td>optional, only used with tinydns</td>
+</tr>
+</table>
+
+<ul>
+<li><b>DNSzonename:</b> This field is required to describe the
+zone's domain name, for instance myorg.com. More than one
+<b>DNSzonename</b> my be specified for a <b>DNSzone</b> so that the
+same host is accessable with different zonenames.</li>
+<li><b>DNSserial:</b> This is the serial number as used for BIND's
+zone transfers. Here it is used to inform <b>ldap2dns</b> that it
+has to rebuild its data-file. Without increasing the serial number
+
+<b>ldap2dns</b> will ignore all modifications until it is
+restarted.</li>
+<li><b>DNSrefresh, DNSretry, DNSexpire, DNSminimum:</b> You may
+safly ignore these numbers if You don't do zone-transfers. Since
+Your secondary nameserver will connect to the LDAP server the same
+way Your primary does, You don't need zone-transfers anyway.</li>
+<li><b>DNSzonemaster:</b> Here you specify the canonical name of
+your primary nameserver.</li>
+<li><b>DNSadminmailbox:</b> This is the contact address of Your
+DNS-administrator. The first dot is converted to a <i>@</i>.</li>
+
+<li><b>DNStype:</b> Must be <b>SOA</b> (Start Of Authority)</li>
+<li><b>DNSclass:</b> Must be <b>IN</b> (Internet, or do still use
+Chaosnet?)</li>
+<li><b>DNSttl:</b> This is the time-to-live value as used by
+
+<b>tinydns</b>. If TTL is nonzero (or omitted), the timestamp is a
+starting time from whereon this zone's information is valid. If TTL
+is zero, the timestamp is an ending time (``time to die'').</li>
+<li><b>DNStimestamp:</b> This is the timestamp as used by
+<b>tinydns</b>. It represents a string as external TAI64 timestamp,
+printed as 16 lowercase hexadecimal characters</li>
+</ul>
+<h4>DNSrrset</h4>
+The Resource Record Set represents all of the resource records for
+a given host name within a zone. It must be a child of a DNSzone
+object.<br />
+<table bgcolor="#EEEEEE">
+<tr>
+<th>ATTRIBUTE</th>
+
+<th>VALUE</th>
+<th>Comment</th>
+</tr>
+<tr>
+<td>objectclass</td>
+<td>DNSrrset</td>
+<td>required</td>
+</tr>
+<tr>
+<td>cn</td>
+<td><i>common name</i></td>
+
+<td>required</td>
+</tr>
+<tr>
+<td>DNSdomainname</td>
+<td><i>Name of this record</i></td>
+<td>optional, relative to zonename</td>
+</tr>
+<tr>
+<td>DNSipaddr</td>
+<td><i>IP address</i></td>
+<td>optional, mutivalued</td>
+
+</tr>
+<tr>
+<td>DNScname</td>
+<td><i>Canonical name</i></td>
+<td>optional, without ending dot relative to zonename</td>
+</tr>
+<tr>
+<td>DNSpreference</td>
+<td><i>integer</i></td>
+<td>optional, only used for MX records</td>
+</tr>
+
+<tr>
+<td>DNStype</td>
+<td>A, CNAME, NS, MX, PTR or TXT</td>
+<td>must be any valid record type</td>
+</tr>
+<tr>
+<td>DNSclass</td>
+<td>IN</td>
+<td>must be IN</td>
+</tr>
+<tr>
+
+<td>DNSttl</td>
+<td><i>time to live</i></td>
+<td>optional, only used with tinydns</td>
+</tr>
+<tr>
+<td>DNStimestamp</td>
+<td><i>timestamp</i></td>
+<td>optional, only used with tinydns</td>
+</tr>
+
+<tr>
+<td>DNSsrvpriority</td>
+<td><i>SRV Priority</i></td>
+<td>optional, defaults to 0 for <a href="http://www.menandmice.com/online_docs_and_faq/glossary/srv.record.htm">SRV</a> records</td>
+</tr>
+
+<tr>
+<td>DNSsrvweight</td>
+<td><i>SRV Weight</i></td>
+<td>optional, defaults to 0 for <a href="http://www.menandmice.com/online_docs_and_faq/glossary/srv.record.htm">SRV</a> records</td>
+</tr>
+
+<tr>
+<td>DNSsrvport</td>
+<td><i>SRV Port</i></td>
+<td>Required for <a href="http://www.menandmice.com/online_docs_and_faq/glossary/srv.record.htm">SRV</a> records</td>
+</tr>
+</table>
+<br />
+<ul>
+
+<li><b>DNSrrset:</b> This object-class must be a direct child of
+DNSzone. Its <b>dn</b> should be specified as
+<pre>
+cn=<i>domainname</i>,cn=<i>zonename</i>,...
+</pre></li>
+<li><b>DNSdomainname</b> This is the partial domain-name, ie. the
+part in front of the zone-name.</li>
+
+<li><b>DNSipaddr:</b> This specifies the IP-address in dotted
+format. It can be used for <b>DNSrrset</b>'s of type <b>A, NS,
+MX</b> or <b>PTR</b>. <b>DNSipaddr</b> is multivalued to specifiy
+more than one IP-address for a service. If used in
+<b>DNSrrset</b>'s with <b>DNStype</b> = <b>PTR</b> it overrides the
+old-fashioned form used in <b>DNSdomainname</b> such as
+13.178.23.in-addr.arpa for reverse lookups.</li>
+
+<li><b>DNScname:</b> Whenever there is a mapping of a domain-name
+to a canonical name, use this attribute. <b>DNScname</b> may be
+used for <b>DNSrrset</b>'s with <b>DNStype CNAME, NS, MX, PTR or
+TXT</b>. If the last character of a CNAME is a dot its name is
+considered absolute. If it does not contain a dot, its name is
+prepended to the zone-name.</li>
+<li><b>DNSpreference:</b> This number is the mail-exchange
+preference as used by BIND.</li>
+<li><b>DNStype:</b> This must be <b>A, CNAME, NS, MX, PTR</b> or
+
+<b>TXT</b>. It specifies the DNSrrset type.</li>
+<li><b>DNSclass:</b> Must be <b>IN</b></li>
+<li><b>DNSttl:</b> This is the time-to-live value as used by
+<b>tinydns</b>. If TTL is non-zero (or omitted), the time-stamp is
+a starting time from where-on this zone's information is valid. If
+TTL is zero, the timestamp is an ending time (``time to
+die'').</li>
+<li><b>DNStimestamp:</b> This is the timestamp as used by
+
+<b>tinydns</b>. It represents a string as external TAI64
+time-stamp, printed as 16 lowercase hexadecimal characters</li>
+<li><b>DNSsrvpriority:</b> Integer representing the relative priority of this DNS SRV record. See <a href="http://www.menandmice.com/online_docs_and_faq/glossary/srv.record.htm">menandmice.com</a> for more information about DNS SRV records.</li>
+<li><b>DNSsrvweight:</b> DNS SRV record weight field.  Integer</li>
+<li><b>DNSsrvport:</b> DNS SRV record port number.  Integer</li>
+</ul>
+<br />
+
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('ldap2dns', 'Usage: Running ldap2dns'));
+// -->
+</script>
+<noscript>
+<h3>Usage: Running ldap2dns</h3>
+</noscript>
+If You are a tinydns user, run <b>ldap2dns</b> in /services/tinydns/root.<br />
 If You are an openldap user, the command line switches are the same as for ldapsearch
 or ldapadd.
-<PRE>
-$ ldap2dns -D "<I>binddn</I>" [ -w <I>passwd</I> ] -b "<I>searchbase</I>" -o data -e "cd /var/tinydns/root && /usr/bin/tinydns-data"
-</PRE>
+<pre>
+$ ldap2dns -D "<I>binddn</I>" [ -w <I>passwd</I> ] -b "<I>searchbase</I>" \
+-o data -e "cd /var/tinydns/root &amp;&amp; /usr/bin/tinydns-data"
+</pre>
 This generates a data file which is converted into a data.cdb by tinydns-data as
-soon as ldap2dns detects a modification in the LDAP directory. 
-The password is required if You restrict read queries to authenticated users only. 
-Test with 
-<PRE>
+soon as ldap2dns detects a modification in the LDAP directory.
+The password is required if You restrict read queries to authenticated users only.
+Test with
+<pre>
 $ dnsq any corp.local <I>ipaddr</I>
-</PRE>
+</pre>
 Replace <I>ipaddr</I> with whatever You configured tinydns to listen to.
-<P>
+
 
 If You are a BIND user, run <B>ldap2dns</B> in /var/named with
-<PRE>
-$ ldap2dns -D "<I>binddn</I>" -w <I>passwd</I> -b "<I>searchbase</I>" -o db -e "kill -HUP `cat /var/run/named-pid`"
-</PRE>
+<pre>
+$ ldap2dns -D "<I>binddn</I>" -w <I>passwd</I> -b "<I>searchbase</I>" \
+-o db -e "kill -HUP `cat /var/run/named-pid`"
+</pre>
 Do not forget to add You primary definition to Your named.boot file.
 Your named should be restarted automatically as soon as ldap2dns detects a modification
 in the LDAP directory. If bind is not restarted, do so with
-<PRE>
+<pre>
 # kill -HUP <I>PID</I>
-</PRE>
-Now run 
-<PRE>
+</pre>
+Now run
+<pre>
 $ nslookup - localhost
 > ns1.corp.local
-</PRE>
+</pre>
 Note that <B>nslookup</B> only works with <B>tinydns</B> if Your nameserver resolves its IP-address
 backwards.
-<P>
 
-<H3>4. Running ldap2dnsd</H3>
-<B>ldap2dnsd</B> is a hard link onto <B>ldap2dns</B>. If invoked, the program
-starts as backgound-daemon and contineously checks for modifications in the LDAP directory.
-If the the daemon sees a modification in the <B>DNSserial</B> numbers it updates the data
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('ldap2dnsd', 'Usage: Running ldap2dnsd'));
+// -->
+</script>
+<noscript>
+<h3>Usage: Running ldap2dnsd</h3>
+</noscript>
+When <b>ldap2dns</b> is invoked as <b>ldap2dnsd</b>, the program
+starts as backgound-daemon and continuously checks for modifications in the LDAP directory.
+If the the daemon sees a modification in the <b>DNSserial</b> numbers it updates the data
 or .db files, depending what kind of output was configured. This check is done about once
-a minute.<BR>
-The command-line options for <B>ldap2dnsd</B> are the same as for <B>ldap2dns</B>.
-Use the -u option to modify the update intervall. You may also use -u on <B>ldap2dns</B>
-to start as a foreground daemon. This is useful if You want to run <B>ldap2dns</B> from
-<A HREF="http://cr.yp.to/daemontools.html">daemontools</A>. To do this run <B>ldap2tinydns-conf</B>
-in /service/tinydns and link /service/ldap2dns onto /service/tinydns/ldap2dns.
-<PRE>
-# ln -s /service/tinydns/ldap2dns /service/ldap2dns
-</PRE>
-After a few seconds <B>daemontools</B> starts <B>ldap2dns</B> which itself generates data
-files whenever a modification is commited into the LDAP directory. 
-<P>
-<B>ldap2dns</B> and <B>ldap2dnsd</B> recognize the following options:
-<PRE>
--D <I>binddn</I> specify the distinguished name to bind to the LDAP directory
--w <I>bindpasswd</I> use bindpasswd as the password for simple authentication
--b <I>searchbase</I> use searchbase as the starting point for the search instead of the default
--o Generate a "data" file to be processed by tinydns-data. 
--o db	For each zone generate a "<zonename>.db" file to be used by named.
--L[<I>filename</I>] print output in LDIF format for reimport. If no filename is specified output goes to stdout. 
--h <I>host</I> specify the hostname of LDAP directory. Default is localhost.
--p <I>port</I> portnumber to connect to LDAP directory. Defaults is 389
+a minute and is configurable.<br />
+The command-line options for <b>ldap2dnsd</b> are the same as for <b>ldap2dns</b>.
+Use the -u option to modify the update interval. You may also use -u on <b>ldap2dns</b>
+to start as a foreground daemon. This is useful if You want to run <b>ldap2dns</b> from
+<b><a href="http://cr.yp.to/daemontools.html">daemontools</a></b>.<br />
+<br />
+These instructions assume you will be running <b>ldap2dns</b> under
+<b>daemontools</b>b> and that tinydns is also running under
+daemontools.  These instructions also assume you are using Dan Bernstein's
+standard directory locations.  Make sure you change the below examples
+to match your environment.<br />
+<br />
+Start by creating the a non-root user to run your ldap2dns and associated
+logging mechanism:
+<pre>
+# groupadd -r ldap2dns
+# useradd -r -d /dev/null -s /bin/false -c "ldap2dns Daemon" \
+ -g ldap2dns ldap2dns
+# groupadd -r l2dnslog
+# useradd -r -d /dev/null -s /bin/false -c "ldap2dns Logger" \
+ -g l2dnslog l2dnslog
+</pre>
+<br />
+Next configure the ldap2dns area to be managed by <b>daemontools</b>.
+Typically this is <i>/etc/ldap2dns</i>
+<pre>
+# cd /etc
+# ldap2tinydns-conf ldap2dns l2dnslog /etc/ldap2dns /etc/tinydns/root
+</pre>
+The syntax is close to tinydns-conf except that you will also need to specify
+the path to the <i>root</i> directory for tinydns.  This is the directory that
+holds the <i>data</i> file.<br />
+<br />
+Next edit the file <i>/etc/ldap2dns/run</i> and optionally the environment
+variables in <i>/etc/ldap2dns/env</i> as necessary for your environment.  This
+may include configuring a base DN, a bind DN, a password, and an interval.<br />
+<br />
+When everything is ready configured properly create a symlink from
+<i>/etc/ldap2dns</i> into <i>/service</i>.  This action will cause
+<b>daemontools</b> to launch <b>ldap2dns</b>.
+<pre>
+# ln -s /etc/ldap2dns /service/ldap2dns
+</pre>
+After a few seconds <b>daemontools</b> starts <b>ldap2dnsd</b> which itself generates data
+files whenever a modification is commited into the LDAP directory.
+
+<b>ldap2dns</b> and <b>ldap2dnsd</b> recognize the following options:
+<pre>
+-D <i>binddn</i> specify the distinguished name to bind to the LDAP directory
+-w <i>bindpasswd</i> use bindpasswd as password for simple authentication
+-b <i>searchbase</i> use searchbase as starting point for search instead default
+-o data generate a "data" file to be processed by tinydns-data
+-o db for each zone generate a "&lt;zonename&gt;.db" file to be used by named
+-L[<i>filename</i>] print output in LDIF format to [<i>filename</i>] or stdout for reimport
+-h <i>host</i> specify the hostname of LDAP directory. Default is localhost
+-p <i>port</i> portnumber to connect to LDAP directory. Defaults is 389
 -v run in verbose mode
 -vv even more verbose
 -V print version and exit
--u <I>numsecs</I> update DNS data every numsecs.
-</PRE>
-<B>ldap2dns</B> and <B>ldap2dnsd</B> recognizes the following environement variables:<BR>
-<B>TINYDNSDIR</B>: Specifies the directory where ldap2dns writes its data file.<BR>
-<B>LDAP2DNS_UPDATE</B>: Specifies the update intervall as the -u command line option would.<BR>
-<B>LDAP2DNS_OUTPUT</B>: Specifies the default output, as the -o command line option would.
-<P>
-<B>ldap2dns</B> and <B>ldap2dnsd</B> use the following parameters from /etc/ldap.conf if not
-specified on the command line:
-<B>BASE</B>: The LDAP search base.<BR>
-<B>HOST</B>: The LDAP server.<BR>
-<B>PORT</B>: The LDAP port.
-<P>
+-u <i>numsecs</i> update DNS data every numsecs.
+</pre>
+<b>ldap2dns</b> and <b>ldap2dnsd</b> recognizes the following environement
+variables:<br />
+<b>TINYDNSDIR</b>: Specifies the directory where ldap2dns writes its data
+file.<br />
+<b>LDAP2DNS_UPDATE</b>: Specifies the update intervall as the -u command line
+option would.<br />
+<b>LDAP2DNS_OUTPUT</b>: Specifies the default output, as the -o command line
+option would.
 
-<H3>5. Importing DNS data from Your named</H3>
+<b>ldap2dns</b> and <b>ldap2dnsd</b> use the following parameters from
+/etc/ldap.conf if not
+specified on the command line:
+<b>BASE</b>: The LDAP search base.<br />
+<b>HOST</b>: The LDAP server.<br />
+<b>PORT</b>: The LDAP port.
+
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('ImportingAXFR',
+    'Importing DNS data from an existing AXFR capable (BIND) name server'));
+// -->
+</script>
+<noscript>
+<h3>Importing DNS data from an existing AXFR capable (BIND) name server</h3>
+</noscript>
 A perl-script <I>import.pl</I> is contained in this package. Edit the first
 lines of the script to conform to Your configuration.
 If You have installed the Perl packages Net::LDAP and Net::DNS
 skip the following lines, otherwise do
-<PRE>
+<pre>
 # perl -MCPAN -e 'shell'
 (...snip...)
 > install Net::DNS
 > install Net::LDAP
-</PRE>
+</pre>
 Now check that Your nameserver allows zone transfers to your host and run the import script:
-<PRE>
+<pre>
 $ echo 'primary mydomain.org ' | ./import.pl
-</PRE>
+</pre>
 for a single domain or
-<PRE>
+<pre>
 # cat named.boot | ./import.pl
-</PRE>
+</pre>
 to populate Your LDAP directory.
-<P>
 
-<H3>6. Coming soon</H3>
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('ImportingTinyDNS',
+    'Importing DNS data from an existing TinyDNS name server'));
+// -->
+</script>
+<noscript>
+<h3>Importing DNS data from an existing TinyDNS name server</h3>
+</noscript>
+Use the supplied <i>data2ldap.pl</i> in the <i>scripts/</i> directory
+<pre>
+$ data2ldap.pl data data.ldif ou=DNS,dc=example,dc=com
+</pre>
+More to come...<br />
+<br />
+
+
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('Roadmap', 'Roadmap'));
+// -->
+</script>
+<noscript>
+<h3>Roadmap</h3>
+</noscript>
 A browser-based administration toolkit, which connects directly
-to the LDAP-directory service. <A HREF="ldap2dns/example.html">
-Here is a screenshot</A>
-<P>
+to the LDAP-directory service.
 
-<H3>7. To Do</H3>
-<UL>
-<LI>Write a man page.</LI>
-<LI>named.conf should be created automatically.</LI>
-</UL>
-<P>
 
-<H3>8. Copyright and disclaimer</H3>
-This program is licensed under the GPL version 2 or at Your choice any later
-version.<BR>
-It is maintained by <A HREF="mailto:jacob.rief@tiscover.com?subject=ldap2dns">Jacob Rief</A>.
-If you run <B>ldap2dns</B> on a productive nameserver, please mail me
-and tell me on what OS and with which nameserver you do so. 
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('ToDo', 'To Do'));
+// -->
+</script>
+<noscript>
+<h3>To Do</h3>
+</noscript>
+<ul>
+<li>Write a man page.</li>
+<li>named.conf should be created automatically.</li>
+</ul>
 
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('Copyright', 'Copyright and Disclaimer'));
+// -->
+</script>
+<noscript>
+<h3>Copyright and Disclaimer</h3>
+</noscript>
+This program is Copyright 1999-2004 Jacob Rief and 2005 Ben Klang<br />
+This program is licensed under the GPL version 2<br />
+ldap2dns was originally written by Jacob Rief (jacob.rief@tiscover.com).  It is now maintained by Ben Klang (ben@alkaloid.net).  If you run <B>ldap2dns</B> on a production nameserver, please send the maintainer an email and mention on what OS and with which nameserver you do so.<br />
+<br />
+<b><i>Disclaimer:</i> The author and all contributors disclaim any kind of warranty or liability or suitability for any purpose.  By running this software you agree that you are a competent systems administrator and will bear the responsibility for your actions.</b><br />
+
+<script language="JavaScript" type="text/javascript">
+<!--
+document.write(addEntry('Download', 'Download'));
+// -->
+</script>
+<noscript>
+<h3>Download</h3>
+</noscript>
+<h4>Latest Release:
+<a href="/dist/ldap2dns/ldap2dns-0.3.6.tar.gz">ldap2dns-0.3.6</a>
+</h4>
+Released December 16, 2005&nbsp;|&nbsp;
+<a
+href="http://svn.alkaloid.net/browse/chora/co.php?f=ldap2dns/tags/0.3.6/
+ChangeLog">ChangeLog</a>&nbsp;|&nbsp;<a
+href="/dist/ldap2dns/ldap2dns-0.3.6.tar.gz">Download (tarball)</a>
+<h4>Old Releases:</h4>
+<table border=2 cellpadding=4 align="center">
+    <tr align="center">
+        <th>Version</th>
+        <th>tar.gz</th>
+        <th>rpm</th>
+        <th>srpm</th>
+        <th>Released</th>
+    </tr>
+    <tr align="center">
+        <td>0.1.1</td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.1.1.tar.gz">ldap2dns</a></td>
+        <td></td>
+        <td></td>
+        <td>2000-Sep-19</td>
+    </tr>
+    <tr align="center">
+        <td>0.1.2</td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.1.2.tar.gz">ldap2dns</a></td>
+        <td></td>
+        <td></td>
+        <td>2000-Sep-22</td>
+    </tr>
+    <tr align=center>
+        <td>0.1.3</td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.1.3.tar.gz">ldap2dns</a></td>
+        <td></td>
+        <td></td>
+        <td>2000-Sep-28</td>
+    </tr>
+    <tr align=center>
+        <td>0.1.4</td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.1.4.tar.gz">ldap2dns</a></td>
+        <td></td>
+        <td></td>
+        <td>2000-Oct-04</td>
+    </tr>
+    <tr align=center>
+        <td>0.2.0</td>
+        <td><a href="ldap2dns-0.2.0.tar.gz">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.0-1.i386.rpm">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.0-1.src.rpm">ldap2dns</a></td>
+        <td>2000-Dec-14</td>
+    </tr>
+    <tr align=center>
+        <td>0.2.2</td>
+        <td><a href="ldap2dns-0.2.2.tar.gz">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.2-2.i386.rpm">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.2-2.src.rpm">ldap2dns</a></td>
+        <td>2001-Feb-16</td>
+    </tr>
+    <tr align=center>
+        <td>0.2.3</td>
+        <td><a href="ldap2dns-0.2.3.tar.gz">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.3-1.i386.rpm">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.3-1.src.rpm">ldap2dns</a></td>
+        <td>2001-Mar-23</td>
+    </tr>
+    <tr align=center>
+        <td>0.2.4</td>
+        <td><a href="ldap2dns-0.2.4.tar.gz">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.4-1.i386.rpm">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.4-1.src.rpm">ldap2dns</a></td>
+        <td>2001-May-08</td>
+    </tr>
+    <tr align=center>
+        <td>0.2.5</td>
+        <td><a href="ldap2dns-0.2.5.tar.gz">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.5-1.i386.rpm">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.5-1.src.rpm">ldap2dns</a></td>
+        <td>2001-Jun-27</td>
+    </tr>
+    <tr align=center>
+        <td>0.2.6</td>
+        <td><a href="ldap2dns-0.2.6.tar.gz">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.6-1.i386.rpm">ldap2dns</a></td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.2.6-1.src.rpm">ldap2dns</a></td>
+        <td>2001-Aug-09</td>
+    </tr>
+    <tr align=center>
+        <td>0.3.4</td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.3.4.tar.gz">ldap2dns</a></td>
+        <td></td>
+        <td></td>
+        <td>2004-Apr-07</td>
+    </tr>
+    <tr align="center">
+        <td>0.3.5</td>
+        <td><a href="/dist/ldap2dns/ldap2dns-0.3.5.tar.gz">ldap2dns</a></td>
+        <td></td>
+        <td></td>
+        <td>2005-Nov-30</td>
+    </tr>
+</table>
+
+<h4>Developer Access:</h4>
+The bleeding edge of ldap2dns is in the Alkaloid Networks subversion repository found at <a href="https://svn.alkaloid.net/gpl/ldap2dns/trunk">https://svn.alkaloid.net/gpl/ldap2dns/trunk</a>.  Following the Subversion standard, releases are kept in /gpl/ldap2dns/tags and branches are in /gpl/ldap2dns/branches.<br />
+<br />
+</div>
+<!-- </body>
+</html> -->

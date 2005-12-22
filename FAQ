@@ -1,6 +1,8 @@
 1) What happened to the webadmin directory?
 
-2005-12-07 bklang
+2005-12-22 bklang
+** See security note at the end of this section regarding the old webadmin **
+
 I have deprecated that code in favor of another project I am working on.  It
 is called Beatnik and is a Horde framework module.  The status of the webadmin
 code was unclear and I was not willing to support it so I deprecated it.  I 
@@ -11,6 +13,17 @@ As far as I'm concerned you are welcome to use it but consequently are on your
 own.  You might also contact the author, Jacob Rief (jacob.rief@tiscover.com)
 for more information but he is no longer interested in maintaing this work
 so do not depend on him.
+
+During a routine code audit on the ldap2dns sources a number of potential LDAP
+injection vulnerabilities were discovered.  Since this code is deprecated no
+attempt to correct these flaws has been made. 
+
+
+IF YOU CHOOSE TO RUN THE DEPRECATED WEBADMIN SOFTWARE:  Please take all
+necessary steps to secure your environment.  The author of this package takes no
+responsibility for any problems related to the flawed webadmin code.
+
+Thanks to Erik Cabetas for bringing these issues to my attention.
 
 2) Why have you deprecated all that code?
 

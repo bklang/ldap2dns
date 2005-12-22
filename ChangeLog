@@ -1,6 +1,13 @@
 # $Id$
 
-Version 0.3.6 (latest)
+Version 0.3.7 (latest)
++ Changed default location of ldap.conf to /etc/ldap.conf
++ Added note on potential security vulns in deprecated/webadmin to README
++ Changed port declarations/format strings from int to unsigned short
+  to match standards
++ Updated doc/README.html
+
+Version 0.3.6
 + New maintainer: Ben Klang <ben@alkaloid.net>
 + Fixed bug with duplicate OIDs in dns.schema from partially applied patch
 + Renamed schema file to ldap2dns.schema

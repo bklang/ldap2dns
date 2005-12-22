@@ -54,7 +54,8 @@ install: all
 	install -o root -g root -m 644 ldap2dns.schema $(LDAPCONFDIR)/schema/
 
 clean:
-	rm -f *.o *.o-dbg ldap2dns ldap2dnsd data* *.db core $(SPECFILE)
+	rm -f *.o *.o-dbg ldap2dns ldap2dns-dbg ldap2dnsd data* *.db core \
+    $(SPECFILE)
 
 tar: clean
 	cd ..; \
