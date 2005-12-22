@@ -1,6 +1,6 @@
 # $Id$ 
-VERSION=0.3.6
-RELEASE=3
+VERSION=0.3.7
+RELEASE=0.alkaloid.0
 CC=gcc -O2
 CCDEBUG=gcc -g
 CFLAGS=$(INC) -DVERSION='"$(VERSION)"'
