@@ -1,5 +1,5 @@
 # $Id$
-* Add startup and shutdown messages (2005/12/22 bklang)
+* Add startup and shutdown messages for daemon mode. (2005/12/22 bklang)
 
 * Add support for configuring basedn, binddn, bindpw, and execute command via
   environment variables. (2005/12/07 bklang)
@@ -16,8 +16,12 @@
 * Modify scripts/data2ldap.pl to merge multiple A records for a single
   host in data file into single object in LDAP (2005/12/08 bklang)
 
+--- For ldap2dns 0.4 --- WILL BREAK COMPATIBILITY ---
 * Clean up DNS TXT support: text current requires a trailing '.', probably
   should introduce a new attribute for DNS TXT so it is unambiguous
+  (2005/12/23 bklang)
+
+* Remove dnszonename and use dnsdomainname instead (2006/01/16 bklang)
 
 --- Old TODOs from Jacob ---
 Version ?.?.? (next)
