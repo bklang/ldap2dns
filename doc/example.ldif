@@ -1,45 +1,197 @@
-dn: ou=dns,o=myorg
-objectclass: organizationalUnit
-ou: dns
-userpassword: dnsadmin
+###
+# ldap2dns examples file
+# Part of the ldap2dns package
+# (C) 2006 Ben Klang <ben@example.com>
+# http://projects.example.com
+# $Id$
+###
 
-dn: cn=corp.local,ou=dns,o=myorg
-objectclass: DNSzone
-cn: corp.local
-DNSzonename: corp.local
-DNSserial: 12345
-DNSrefresh: 10800
-DNSretry: 3600
-DNSexpire: 3600000
-DNSminimum: 86400
-DNSadminmailbox: domainmaster.myorg
-DNSzonemaster: ldap.myorg
+# A couple notes before we get started
+# All dnscname and dnsname fields can take either a short or fully a qualified
+# hostname.  If you do not add a trailing '.' then ldap2dns will append the
+# domain name of the parent object.  This is true even if the hostname has a '.'
+# inside it. ex: "foo.bar" would get the domain appended.  "foo.bar." would not.
 
-dn: cn=mail,cn=corp.local,ou=dns,o=myorg
-objectclass:	DNSrrset
-cn:		mail
-DNScname:	mail
-DNStype:	mx
-DNSipaddr:	17.19.21.23
+# The records below are designed to be representative of the various options
+# available with ldap2dns and tinydns.
 
-dn: cn=ns1,cn=corp.local,ou=dns,o=myorg
-objectclass:	DNSrrset
-cn:		ns1
-DNScname:	ns1
-DNStype:	ns
-DNSipaddr:	17.19.23.24
+# Create the top level object to hold all DNS zones
+dn: ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: DNS
 
-dn: cn=ns2,cn=corp.local,ou=dns,o=myorg
-objectclass:	DNSrrset
-cn:		ns2
-DNScname:	ns2
-DNStype:	ns
-DNSipaddr:	17.19.23.25
+# Example SOA for the "example.com" domain
+dn: cn=example.com,ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: dnszone
+cn: example.com
+dnszonename: example.com
+dnsttl: 259200
+dnsadminmailbox: hostmaster.example.com
+dnszonemaster: dns01.example.com
+dnsserial: 2006030701
 
-dn: cn=www,cn=corp.local,ou=dns,o=myorg
-objectclass:	DNSrrset
-cn:		www
-DNSdomainname:	www
-DNStype:	a
-DNSipaddr:	17.19.23.30
+# MX record for example.com.  This MX has a preference of 10 and is aliased
+# to the host mx1.example.com.   This hostname will need to be defined elsewhere
+# to work as expected.  The complementary record can be found below.
+dn: cn=MX-10,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: MX-10
+dnstype: mx
+dnsdomainname: example.com.
+dnscname: mx1
+dnspreference: 10
 
+# A record for mx1
+dn: cn=mx1.example.com,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: mx1.example.com
+dnstype: a
+dnsdomainname: mx1
+dnsipaddr: 192.168.0.7
+
+# Nameserver record.  This record will also require a separate A record defining
+# ns1.example.com to be properly functioning.
+dn: cn=ns1.example.com,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: ns1.example.com
+dnstype: a
+dnsdomainname: ns1
+dnsipaddr: 192.168.0.1
+
+# example.com A record
+dn: cn=example.com,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: example.com
+dnstype: a
+dnsdomainname: example.com.
+dnsipaddr: 192.168.0.2
+
+# A host named foo with a record TTL of 1800 seconds (30 minutes)
+dn: cn=foo.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: foo.example.com
+dnstype: a
+dnsdomainname: foo.example.com.
+dnsipaddr: 192.168.0.3
+dnsttl: 1800
+
+# Example CNAME pointing www.example.com to foo.example.com
+dn: cn=www.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: www.example.com
+dnstype: cname
+dnsdomainname: www
+dnscname: foo.example.com
+
+# Example pointing all otherwise undefined hosts underneath example.com to
+# 192.168.0.100
+dn: cn=*.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: *.example.com
+dnstype: a
+dnsdomainname: *.example.com.
+dnsipaddr: 192.168.0.100
+
+# DNS TXT record.  This record is used by Kerberos to associate the example.com
+# DNS domain with the EXAMPLE.COM Kerberos realm.
+#
+# NOTE: The trailing '.' is required in the dnscname field!  This is a bug
+# which will be fixed in a future release of ldap2dns.  The trailing '.' is not
+# published in the resulting DNS record.
+#
+dn: cn=TXT-_kerberos.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: TXT-_kerberos.example.com
+dnstype: txt
+dnsdomainname: _kerberos.example.com.
+dnscname: EXAMPLE.COM.
+
+# SRV record.  This record creates the following BIND SRV record equivalent:
+# _kerberos._tcp	IN SRV	0 0 88 krb5kdc.example.com.
+dn: cn=SRV-_kerberos._tcp.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+cn: SRV-_kerberos._tcp.example.com
+dnstype: srv
+dnsdomainname: _kerberos._tcp.example.com.
+dnscname: krb5kdc.example.com.
+dnssrvpriority: 0
+dnssrvweight: 0
+dnssrvport: 88
+
+# This record demonstrates ldap2dns+tinydns' ability to create both an A
+# record and a PTR record with just one object.  Note that for the PTR record
+# to be of any use you would also need to define a zone/SOA for
+# 0.168.192.in-addr.arpa and add at least one nameserver record.
+dn: cn=APTR-baz.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+dnstype: a
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+dnsdomainname: braque.example.com.
+cn: APTR-baz.example.com
+dnscipaddr: 192.168.0.15
+
+# The following creates a tinydns record location definition and an  A+PTR
+# record that is only published in to hosts who fall in the newly defined "Ke"
+# location.  This is a way of implementing what BIND calls "views", only ours 
+# are per-record instead of per-zone.
+# See http://cr.yp.to/djbdns/tinydns-data.html for 
+# details on implementation.
+
+# This location matches all hosts whose IP address match 10.6.1.*
+dn: dnslocation=Ke,ou=DNS,dc=example.com
+objectClass: top
+objectClass: dnsloccodes
+dnslocation: Ke
+dnsipaddr: 10.6.1
+
+# This location matches all hosts on the internet at-large.  This is the
+# "catch-all" location and is used to exclude records from other locations.
+dn: dnslocation=Ex,ou=DNS,dc=example.com
+objectClass: top
+objectClass: dnsloccodes
+dnslocation: Ex
+dnsipaddr: :
+
+# This record is served to hosts matching the Ke location
+dn: cn=Ke-quint.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+dnstype: a
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+dnslocation: Ke
+cn: Ke-quint.example.com
+dnscipaddr: 10.6.1.35
+dnsdomainname: quint.example.com.
+
+# This record is served to hosts matching the Ex location (everyone NOT
+# matching Ke)
+dn: cn=Ex-quint.example.com,cn=example.com,ou=DNS,dc=example,dc=com
+dnstype: a
+objectClass: top
+objectClass: dnszone
+objectClass: dnsrrset
+dnslocation: Ex
+cn: Ex-quint.example.com
+dnscipaddr: 192.168.0.89
+dnsdomainname: quint.example.com.
