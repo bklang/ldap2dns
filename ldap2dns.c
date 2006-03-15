@@ -13,8 +13,9 @@
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
+#include <sys/types.h>
 
-#define UPDATE_INTERVALL 59
+#define UPDATE_INTERVAL 59
 #define LDAP_CONF "/etc/ldap.conf"
 #define OUTPUT_DATA 1
 #define OUTPUT_DB 2
@@ -163,7 +164,7 @@ static void print_usage(void)
 	printf("    -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
 	printf("    -u numsecs\tUpdate DNS data after numsecs. Defaults to %d if started as daemon.\n\t\t"
 		"Important notice: data.cdb is rewritten only after DNSserial in DNSzone is increased.\n",
-		UPDATE_INTERVALL);
+		UPDATE_INTERVAL);
 	printf("    -e \"exec-cmd\" This command is executed after ldap2dns regenerated its data files\n");
 	printf("    -v\t\trun in verbose mode\n");
 	printf("    -vv\t\teven more verbose\n");
@@ -249,7 +250,7 @@ static int parse_options()
 	len = strlen(main_argv[0]);
 	if (strcmp(main_argv[0]+len-9, "ldap2dnsd")==0) {
 		options.is_daemon = 1;
-		options.update_iv = UPDATE_INTERVALL;
+		options.update_iv = UPDATE_INTERVAL;
 	} else {
 		options.is_daemon = 0;
 		options.update_iv = 0;
@@ -292,7 +293,7 @@ static int parse_options()
 			break;
 		    case 'u':
 			if (sscanf(optarg, "%d", &options.update_iv)!=1)
-				options.update_iv = UPDATE_INTERVALL;
+				options.update_iv = UPDATE_INTERVAL;
 			if (options.update_iv<=0) options.update_iv = 1;
 			break;
 		    case 'D':
@@ -1028,9 +1029,16 @@ int main(int argc, char** argv)
 	main_argc = argc;
 	main_argv = argv;
 	parse_options();
+
+	fprintf(stdout, "ldap2dns v%s starting up", VERSION);
+
+	/* Initialization complete.  If we're in daemon mode, fork and continue */
 	if (options.is_daemon) {
-		if (options.is_daemon==1 && fork())
+		if (options.is_daemon==1 && fork()) {
+			if (options.verbose)
+				fprintf(stdout, "Sending process to background.");
 			exit(0);
+		}
 		/* lowest priority */
 		nice(19);
 	}

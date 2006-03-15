@@ -147,7 +147,7 @@ dnstype: a
 objectClass: top
 objectClass: dnszone
 objectClass: dnsrrset
-dnsdomainname: braque.example.com.
+dnsdomainname: baz.example.com.
 cn: APTR-baz.example.com
 dnscipaddr: 192.168.0.15
 

@@ -8,6 +8,7 @@ Version 0.3.7 (latest)
 + Updated doc/README.html
 + Added security audit result patch from Erik Cabetas (erik.cabetas.com)
 + Fixed typo in ldap2dns.spec.in
++ Updated example ldif in doc/ (Thanks Marc Huot)
 
 Version 0.3.6
 + New maintainer: Ben Klang <ben@alkaloid.net>
