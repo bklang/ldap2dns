@@ -1,8 +1,8 @@
 ###
 # ldap2dns examples file
 # Part of the ldap2dns package
-# (C) 2006 Ben Klang <ben@example.com>
-# http://projects.example.com
+# (C) 2006 Ben Klang <ben@alkaloid.net>
+# http://projects.alkaloid.net
 # $Id$
 ###
 
@@ -35,7 +35,7 @@ dnsserial: 2006030701
 # MX record for example.com.  This MX has a preference of 10 and is aliased
 # to the host mx1.example.com.   This hostname will need to be defined elsewhere
 # to work as expected.  The complementary record can be found below.
-dn: cn=MX-10,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+dn: cn=MX-10,cn=example.com,ou=DNS,dc=example,dc=com
 objectClass: top
 objectClass: dnszone
 objectClass: dnsrrset
@@ -46,7 +46,7 @@ dnscname: mx1
 dnspreference: 10
 
 # A record for mx1
-dn: cn=mx1.example.com,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+dn: cn=mx1.example.com,cn=example.com,ou=DNS,dc=example,dc=com
 objectClass: top
 objectClass: dnszone
 objectClass: dnsrrset
@@ -57,7 +57,7 @@ dnsipaddr: 192.168.0.7
 
 # Nameserver record.  This record will also require a separate A record defining
 # ns1.example.com to be properly functioning.
-dn: cn=ns1.example.com,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+dn: cn=ns1.example.com,cn=example.com,ou=DNS,dc=example,dc=com
 objectClass: top
 objectClass: dnszone
 objectClass: dnsrrset
@@ -67,7 +67,7 @@ dnsdomainname: ns1
 dnsipaddr: 192.168.0.1
 
 # example.com A record
-dn: cn=example.com,cn=example.com,ou=DNS,dc=alkaloid,dc=net
+dn: cn=example.com,cn=example.com,ou=DNS,dc=example,dc=com
 objectClass: top
 objectClass: dnszone
 objectClass: dnsrrset
