@@ -206,7 +206,7 @@ sub read_zone
 			$attr{'DNScname'} = lc $5;
 			add_attrs(\%attr, $zonename);
 		} elsif ($rr->type eq "CNAME" || $rr->type eq "TXT") {
-			die "Invalid ", $rr->type, " record for ", $rr->name, "  " unless ($rr->string =~ /^([0-9a-zA-Z_.+-]+)\.\s+(\d+)\s+(\w+)\s+(\w+)\s+([0-9a-zA-Z_.+-]+)/);
+			die "Invalid ", $rr->type, " record for ", $rr->name, "  " unless ($rr->string =~ /^([0-9a-zA-Z_.+-]+)\.\s+(\d+)\s+(\w+)\s+(\w+)\s+([0-9a-zA-Z_.+-\s\"=:]+)/); 
 			die "Corrupt ", $rr->type, " record for ", $rr->name, "  " unless ($1 eq $rr->name && $2 eq $rr->ttl && $3 eq $rr->class && $4 eq $rr->type);
 
 			my %attr;
