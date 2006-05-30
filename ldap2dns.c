@@ -339,7 +339,7 @@ static int parse_options()
 			exit(0);
 		    case 'w':
 			strncpy(options.password, optarg, sizeof(options.password));
-			options.password[ sizeof( options.password ) ] = '\0';
+			options.password[ sizeof( options.password ) -1 ] = '\0';
 			memset(optarg, 'x', strlen(options.password));
 			break;
 		    case 'e':
@@ -1030,8 +1030,6 @@ int main(int argc, char** argv)
 	main_argv = argv;
 	parse_options();
 
-	fprintf(stdout, "ldap2dns v%s starting up", VERSION);
-
 	/* Initialization complete.  If we're in daemon mode, fork and continue */
 	if (options.is_daemon) {
 		if (options.is_daemon==1 && fork()) {
@@ -1039,6 +1037,8 @@ int main(int argc, char** argv)
 				fprintf(stdout, "Sending process to background.");
 			exit(0);
 		}
+
+		fprintf(stdout, "ldap2dns v%s starting up", VERSION);
 		/* lowest priority */
 		nice(19);
 	}
