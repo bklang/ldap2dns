@@ -1,8 +1,8 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
  * $Id$
+ * Copyright 2005-2006 by Ben Klang <ben@alkaloid.net>
  * Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>
- * Copyright 2005 by Ben Klang <ben@alkaloid.net>
  * License: GPL version 2. See http://www.fsf.org for details
  */
 
@@ -35,9 +35,13 @@ static int main_argc;
 
 static void print_version(void)
 {
-	printf("ldap2dns, version %s\n", VERSION);
-	printf("  Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>\n\n");
-	printf("  Copyright 2005 by Ben Klang <ben@alkaloid.net>\n");
+	printf("\n");
+	printf("ldap2dns version %s\n", VERSION);
+	printf("\n");
+	printf("  Copyright 2005-2006 by Ben Klang <ben@alkaloid.net>\n");
+	printf("  Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>\n");
+	printf("\n");
+	printf("  Released under the terms of the GPL.\n");
 	printf("  http://projects.alkaloid.net\n");
 }
 
@@ -281,7 +285,7 @@ static int parse_options()
 	options.ldifname[0] = '\0';
 	strcpy(options.password, "");
 	strcpy(options.exec_command, "");
-	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:H:o:p:u:V:v::w:L::"))>0 ) {
+	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:H:o:p:u:Vv::w:L::"))>0 ) {
 		if (optarg && strlen(optarg)>127) {
 			fprintf(stderr, "argument %s too long\n", optarg);
 			continue;
@@ -981,42 +985,43 @@ static void read_loccodes(void)
 
 static int connect()
 {
-	int i, rc, version;
+	int i, version, res;
 	for (i = 0; i<options.usedhosts; i++) {
 		if ( strlen(options.urildap[i]) > 0) {
-			rc = ldap_initialize(&ldap_con, options.urildap[i]);
-			if (options.verbose&1 && rc == LDAP_SUCCESS) {
+			res = ldap_initialize(&ldap_con, options.urildap[i]);
+			if (options.verbose&1 && res == LDAP_SUCCESS) {
 				printf("ldap_initialization successful (%s)\n", options.urildap[i]);
-			} else if ( rc != LDAP_SUCCESS ) {
-				printf("ldap_initialization to %s failed %d\n", options.urildap[i], ldap_err2string(rc));
+			} else if ( res != LDAP_SUCCESS ) {
+				printf("ldap_initialization to %s failed %d\n", options.urildap[i], ldap_err2string(res));
 				ldap_con = NULL;
-				return 0;
+				return res;
 			}
 			version = LDAP_VERSION3;
-			if ( (rc=ldap_set_option(ldap_con, LDAP_OPT_PROTOCOL_VERSION, &version)) != LDAP_SUCCESS ) {
-				printf("ldap_set_option to %s failed with err %s!\n", options.urildap[i], ldap_err2string(rc));
+			if ( (res = ldap_set_option(ldap_con, LDAP_OPT_PROTOCOL_VERSION, &version)) != LDAP_SUCCESS ) {
+				printf("ldap_set_option to %s failed with err %s!\n", options.urildap[i], ldap_err2string(res));
 				ldap_con = NULL;
-				return 0;
+				return res;
 			}
-			if ( options.use_tls[i] && (rc=ldap_start_tls_s( ldap_con, NULL, NULL )) != LDAP_SUCCESS ) {
-				printf("ldap_start_tls_s to %s failed with err %s!\n", options.urildap[i], ldap_err2string(rc));
+			if ( options.use_tls[i] && (res = ldap_start_tls_s( ldap_con, NULL, NULL )) != LDAP_SUCCESS ) {
+				printf("ldap_start_tls_s to %s failed with err %s!\n", options.urildap[i], ldap_err2string(res));
 				ldap_con = NULL;
-				return 0;
+				return res;
 			}
 		} else {
 			ldap_con = ldap_init(options.hostname[i], options.port[i]);
-		}
-		if (ldap_simple_bind_s(ldap_con, options.binddn, options.password)==LDAP_SUCCESS) {
-			if (options.verbose&1 && strlen(options.urildap[i]) > 0) {
-				printf("Connected to %s as \"%s\"\n", options.urildap[i], options.binddn);
-			} else if (options.verbose&1) {
-				printf("Connected to %s:%d as \"%s\"\n", options.hostname[i], options.port[i], options.binddn);
+			res = ldap_simple_bind_s(ldap_con, options.binddn, options.password);
+			if (res == LDAP_SUCCESS) {
+				if (options.verbose&1 && strlen(options.urildap[i]) > 0) {
+					printf("Connected to %s as \"%s\"\n", options.urildap[i], options.binddn);
+				} else if (options.verbose&1) {
+					printf("Connected to %s:%d as \"%s\"\n", options.hostname[i], options.port[i], options.binddn);
+				}
+				return 0;
 			}
-			return 1;
 		}
 	}
 	ldap_con = NULL;
-	return 0;
+	return res;
 }
 
 
@@ -1024,6 +1029,7 @@ int main(int argc, char** argv)
 {
 	int soa_numzones;
 	int soa_checksum;
+	int res;
 
 	umask(022);
 	main_argc = argc;
@@ -1045,8 +1051,9 @@ int main(int argc, char** argv)
 	set_datadir();
 	for (;;) {
 		int ldaperr = -1;
-		if (!connect()) {
-			fprintf(stderr, "Warning - Could not connect to any LDAP server\n");
+		res = connect();
+		if (res) {
+			fprintf(stderr, "Warning - Problem while connecting to LDAP server:\n\t%s\n", ldap_err2string(res));
 			if (options.is_daemon==0)
 				break;
 			sleep(options.update_iv);
