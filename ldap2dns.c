@@ -1052,7 +1052,7 @@ int main(int argc, char** argv)
 	for (;;) {
 		int ldaperr = -1;
 		res = connect();
-		if (res) {
+		if (!res) {
 			fprintf(stderr, "Warning - Problem while connecting to LDAP server:\n\t%s\n", ldap_err2string(res));
 			if (options.is_daemon==0)
 				break;
