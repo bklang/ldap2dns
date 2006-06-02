@@ -43,6 +43,7 @@ static void print_version(void)
 	printf("\n");
 	printf("  Released under the terms of the GPL.\n");
 	printf("  http://projects.alkaloid.net\n");
+	printf("\n");
 }
 
 
@@ -151,28 +152,30 @@ static void set_datadir(void)
 static void print_usage(void)
 {
 	print_version();
-	printf("usage: ldap2dns[d] [-D binddn] [-b searchbase] [-o data|db] [-h host] [-p port] [-H hostURI] "
-		   "[-w password] [-L[filename]] [-u numsecs] [-v[v]] [-V]\n\n");
-	printf("ldap2dns connects to an LDAP server reads the DNS information stored in objectclasses\n"
-		"\t\tDNSzone and DNSrrset and writes a file to be used by tinydns or named.\n"
-		"\t\tldap2dnsd starts as background-job and continouesly updates DNS information.\n");
+	printf("usage: ldap2dns[d] [-o data|db] [-h host] [-p port] \\\n");
+	printf("\t\t[-H hostURI] [-w password] [-L[filename]] [-u numsecs] \\\n");
+	printf("\t\t[-D binddn] [-b searchbase] [-v[v]] [-V]\n");
+	printf("\n");
+	printf(" *\tldap2dns formats DNS information from an LDAP server for tinydns or BIND\n");
+	printf(" *\tldap2dnsd runs backgrounded refreshing the data on regular intervals\n");
+	printf("\n");
 	printf("options:\n");
-	printf("    -D binddn\tUse the distinguished name binddn to bind to the LDAP directory\n");
-	printf("    -w bindpasswd\tUse bindpasswd as the password for simple authentication\n");
-	printf("    -b Use searchbase as the starting point for the search instead of the default\n");
-	printf("    -o data\tGenerate a \"data\" file to be processed by tinydns-data\n");
-	printf("    -o db\tFor each zone generate a \"<zonename>.db\" file to be used by named\n");
-	printf("    -L[filename] Print output in LDIF format for reimport\n");
-	printf("    -h host\tHostname of LDAP server, defaults to localhost\n");
-	printf("    -p port\tPortnumber to connect to LDAP server, defaults to %d\n", LDAP_PORT);
-	printf("    -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
-	printf("    -u numsecs\tUpdate DNS data after numsecs. Defaults to %d if started as daemon.\n\t\t"
-		"Important notice: data.cdb is rewritten only after DNSserial in DNSzone is increased.\n",
-		UPDATE_INTERVAL);
-	printf("    -e \"exec-cmd\" This command is executed after ldap2dns regenerated its data files\n");
-	printf("    -v\t\trun in verbose mode\n");
-	printf("    -vv\t\teven more verbose\n");
-	printf("    -V\t\tprint version and exit\n\n");
+	printf("  -D binddn\tUse the distinguished name binddn to bind to the LDAP directory\n");
+	printf("  -w bindpasswd\tUse bindpasswd as the password for simple authentication\n");
+	printf("  -b\t\tSearch base to use instead of default\n");
+	printf("  -o data\tGenerate a tinydns compatible \"data\" file\n");
+	printf("  -o db\t\tGenerate a BIND compatible zone files\n");
+	printf("  -L [filename]\tPrint output in LDIF format for reimport\n");
+	printf("  -h host\tHostname of LDAP server, defaults to localhost\n");
+	printf("  -p port\tPortnumber to connect to LDAP server, defaults to %d\n", LDAP_PORT);
+	printf("  -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
+	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n\t\t", UPDATE_INTERVAL);
+	printf("\n");
+	printf("  -e \"exec-cmd\"\tCommand to execute after data is generated\n");
+	printf("  -v\t\trun in verbose mode, repeat for more verbosity\n");
+	printf("  -V\t\tprint version and exit\n\n");
+	printf("\n");
+	printf("Note: Zone data are only updated after zone serials increment.\n");
 }
 
 static void parse_hosts(char* buf)
@@ -983,9 +986,15 @@ static void read_loccodes(void)
 }
 
 
-static int connect()
+static int do_connect()
 {
 	int i, version, res;
+	if (options.usedhosts < 1) {
+		fprintf(stderr, "\n[!!] Must define at least one LDAP host with which to connect.\n\n");
+		print_usage();
+		exit(1);
+	}
+
 	for (i = 0; i<options.usedhosts; i++) {
 		if ( strlen(options.urildap[i]) > 0) {
 			res = ldap_initialize(&ldap_con, options.urildap[i]);
@@ -1016,7 +1025,7 @@ static int connect()
 				} else if (options.verbose&1) {
 					printf("Connected to %s:%d as \"%s\"\n", options.hostname[i], options.port[i], options.binddn);
 				}
-				return 0;
+				return res;
 			}
 		}
 	}
@@ -1051,8 +1060,8 @@ int main(int argc, char** argv)
 	set_datadir();
 	for (;;) {
 		int ldaperr = -1;
-		res = connect();
-		if (!res) {
+		res = do_connect();
+		if (res != LDAP_SUCCESS || ldap_con == NULL) {
 			fprintf(stderr, "Warning - Problem while connecting to LDAP server:\n\t%s\n", ldap_err2string(res));
 			if (options.is_daemon==0)
 				break;
