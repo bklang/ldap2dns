@@ -49,7 +49,7 @@ static void print_version(void)
 
 static void die_ldap(int err)
 {
-	fprintf(stderr, "Fatal error: %s\n", ldap_err2string(err));
+	fprintf(stderr, "Fatal LDAP error: %s\n", ldap_err2string(err));
 	exit(1);
 }
 
@@ -1032,7 +1032,7 @@ static int do_connect()
 				// FIXME: Allow *real* SASL binds
 				if ((res = ldap_sasl_bind_s(ldap_con, options.binddn, NULL, creds, NULL, NULL, &msgid)) != LDAP_SUCCESS) {
 					fprintf(stderr, "LDAP bind problem:\n\t%s\n", ldap_err2string(res));
-					fprintf(stderr, "Attempting to continue with anonymous credentials.");
+					fprintf(stderr, "Attempting to continue with anonymous credentials.\n");
 					res = LDAP_SUCCESS;
 				}
 			}
@@ -1064,6 +1064,8 @@ int main(int argc, char** argv)
 {
 	int soa_numzones;
 	int soa_checksum;
+	int old_numzones;
+	int old_checksum;
 	int res;
 
 	umask(022);
@@ -1110,18 +1112,17 @@ int main(int argc, char** argv)
 			sleep(options.update_iv);
 			continue;
 		}
-		if (options.is_daemon) {
-			int num, sum;
-			calc_checksum(&num, &sum);
-			if (num!=soa_numzones || sum!=soa_checksum) {
+		//if (options.is_daemon) {
+			calc_checksum(&old_numzones, &old_checksum);
+			if (old_numzones!=soa_numzones || old_checksum!=soa_checksum) {
 				if (options.verbose&1)
 					printf("DNSserial has changed in LDAP zone(s)\n");
-				soa_numzones = num;
-				soa_checksum = sum;
+				soa_numzones = old_numzones;
+				soa_checksum = old_checksum;
 			} else {
 				goto skip;
 			}
-		}
+		//}
 		if (options.ldifname[0]) {
 			if (options.ldifname[0]=='-')
 				ldifout = stdout;
