@@ -1000,7 +1000,7 @@ static int do_connect()
 	struct berval* msgid = malloc(sizeof(struct berval));
 	if (options.useduris < 1) {
 		fprintf(stderr, "\n[!!] Must define at least one LDAP host with which to connect.\n\n");
-		print_usage();
+		fprintf(stderr, "Use --help to see usage information\n");
 		exit(1);
 	}
 
@@ -1079,13 +1079,13 @@ int main(int argc, char** argv)
 
 	if (!options.output) {
 		fprintf(stderr, "[!!]\tMust select an output type (\"db\" or \"data\")\n");
-		print_usage();
+		fprintf(stderr, "Use --help to see usage information\n");
 		exit(1);
 	}
 
 	if (!strlen(options.searchbase)) {
 		fprintf(stderr, "[!!]\tMust provide the base DN for the search.\n");
-		print_usage();
+		fprintf(stderr, "Use --help to see usage information\n");
 		exit(1);
 	}
 
