@@ -11,13 +11,25 @@
 
 * Document scripts/* functionality (2005/12/08 bklang)
 
-* Modify scripts/data2ldap.pl to merge multiple A records for a single
+* Modify scripts/data2ldif.pl to merge multiple A records for a single
   host in data file into single object in LDAP (2005/12/08 bklang)
 
---- For ldap2dns 1.0 --- WILL BREAK COMPATIBILITY ---
+* Add environment vars for each command line option.  This enhances support
+  for systems like DJB's daemontools and Sun's SMF (2006/06/08 bklang)
+
+* Print warning if running as root (2006/06/08 bklang)
+
+--- For ldap2dns 1.0beta --- WILL BREAK COMPATIBILITY ---
 * Clean up DNS TXT support: text current requires a trailing '.', probably
   should introduce a new attribute for DNS TXT so it is unambiguous
   (2005/12/23 bklang)
+
+* Change LDAP2DNS_UPDATE environment var to LDAP2DNS_UPDATE_INTERVAL
+* Change LDAP2DNS_OUTPUT environment var to LDAP2DNS_OUTPUT_FORMAT
+* Change LDAP2DNS_PASSWORD environment var to LDAP2DNS_BINDPW
+  (is this necessary?)
+* Change output formats of "data" and "db" to "tinydns" and "bind"
+  (2006/06/08 bklang)
 
 --- Old TODOs from Jacob ---
 Version ?.?.? (next)
