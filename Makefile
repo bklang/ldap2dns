@@ -30,8 +30,8 @@ all: ldap2dns ldap2dnsd
 
 debug: ldap2dns-dbg
 
-ldap2dns: ldap2dns.o $(LIBS) 
-	$(LD) $(LDFLAGS) -o $@ $+
+ldap2dns: ldap2dns.o
+	$(LD) $(LDFLAGS) $(LIBS) -o $@ $+
 
 ldap2dnsd: ldap2dns
 	ln -f ldap2dns ldap2dnsd
