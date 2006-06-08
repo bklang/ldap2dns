@@ -492,7 +492,7 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		if (namedzone)
 			fprintf(namedzone, "%s.\tIN TXT\t%s.\n", rr->dnsdomainname, rr->cname);
 	} else if (strcasecmp(rr->type, "SRV")==0) {
-		if (tinyfile)
+		if (tinyfile) {
 			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->dnssrvpriority >> 8, rr->dnssrvpriority & 0xff, rr->dnssrvweight >> 8, rr->dnssrvweight & 0xff, rr->dnssrvport >> 8, rr->dnssrvport & 0xff);
 			tmp = strdup(rr->cname);
 			while (p = strchr(tmp, '.')) {
@@ -503,6 +503,10 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			}
 			fprintf(tinyfile, "\\%03o%s", strlen(tmp), tmp);
 			fprintf(tinyfile, "\\000:%s:%s:%s\n", rr->ttl, rr->timestamp, rr->location);
+		}
+		if (namedzone) {
+			fprintf(namedzone, "%s\tIN SRV\t%d\t%d\t%d\t%s.\n", rr->dnsdomainname, rr->dnssrvpriority, rr->dnssrvweight, rr->dnssrvport, rr->cname);
+		}
 	}
 }
 

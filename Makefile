@@ -2,7 +2,7 @@
 VERSION=0.3.7
 RELEASE=0
 CC=gcc -O2
-CCDEBUG=gcc -g
+CCDEBUG=gcc -g -ggdb
 CFLAGS=$(INC) -DVERSION='"$(VERSION)"'
 LIBS=-lldap -llber
 LD=gcc 
@@ -36,8 +36,8 @@ ldap2dns: ldap2dns.o
 ldap2dnsd: ldap2dns
 	ln -f ldap2dns ldap2dnsd
 
-ldap2dns-dbg: ldap2dns.o-dbg $(LIBS) 
-	$(LD) $(LDFLAGS) -o $@ $+
+ldap2dns-dbg: ldap2dns.o-dbg
+	$(LD) $(LDFLAGS) $(LIBS) -o $@ $+
 
 ldap2dns.o: ldap2dns.c
 	$(CC) $(CFLAGS) -c $< -o $@
