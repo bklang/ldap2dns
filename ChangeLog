@@ -6,7 +6,9 @@ Version 0.4.0-pre1 (latest)
 + Fixed a number of possible segfaults if required cmdline options were missing
   Thanks Steve Ayotte (sayotte.alkaloid.net)
 + Added more verbose LDAP error and sanity checking output
-+ Removed (some) deprecated LDAP API calls
++ Replaced all deprecated LDAP API calls
++ Converted to getopt_long and added double-dash options (--help)
++ Added search timeout and max record count options
 
 Version 0.3.7
 + Changed default location of ldap.conf to /etc/ldap.conf

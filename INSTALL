@@ -8,8 +8,8 @@ Type "make" in the current directory.  If all goes well follow up with a
 
 To create an RPM, use one of the following commands:
 
-sudo make DISTRIBUTION=redhat rpm
-sudo make DISTRIBUTION=suse rpm
+make DISTRIBUTION=redhat rpm
+make DISTRIBUTION=suse rpm
 
 if you are running Red Hat or SuSE respectively.
 
@@ -20,4 +20,4 @@ Please send any problem or success reports to the maintainer.
 -- 
 Ben Klang <ben@alkaloid.net>
 Alkaloid Networks
-# $Id$
+$Id$

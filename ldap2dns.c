@@ -13,6 +13,7 @@
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <sys/types.h>
 
 #define UPDATE_INTERVAL 59
@@ -20,6 +21,8 @@
 #define OUTPUT_DATA 1
 #define OUTPUT_DB 2
 #define MAXHOSTS 10
+#define DEF_SEARCHTIMEOUT 40
+#define DEF_RECLIMIT 5000
 
 static char tinydns_textfile[256];
 static char tinydns_texttemp[256];
@@ -117,6 +120,8 @@ static struct
 	char ldifname[128];
 	char exec_command[128];
 	int use_tls[MAXHOSTS];
+	struct timeval searchtimeout;
+	int reclimit;
 } options;
 
 
@@ -153,9 +158,9 @@ static void set_datadir(void)
 static void print_usage(void)
 {
 	print_version();
-	printf("usage: ldap2dns[d] [-o data|db] [-h host] [-p port] \\\n");
-	printf("\t\t[-H hostURI] [-w password] [-L[filename]] [-u numsecs] \\\n");
-	printf("\t\t[-D binddn] [-b searchbase] [-v[v]] [-V]\n");
+	printf("usage: ldap2dns[d] [-o data|db] [-h host] [-p port] [-H hostURI] \\\n");
+	printf("\t\t[-D binddn] [-w password] [-L[filename]] [-u numsecs] \\\n");
+	printf("\t\t[-b searchbase] [-v[v]] [-V] [-t timeout] [-M maxrecords]\n");
 	printf("\n");
 	printf(" *\tldap2dns formats DNS information from an LDAP server for tinydns or BIND\n");
 	printf(" *\tldap2dnsd runs backgrounded refreshing the data on regular intervals\n");
@@ -225,12 +230,16 @@ static int parse_options()
 	extern int optind, opterr, optopt;
 	char buf[256], value[128];
 	int len;
+	int c;
+	int digit_optind = 0;
 	FILE* ldap_conf,*fp;
 	char* ev;
 
 	strcpy(options.searchbase, "");
 	strcpy(options.hostname[0], "localhost");
 	options.port[0] = LDAP_PORT;
+	options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
+	options.reclimit = DEF_RECLIMIT;
 	if (ldap_conf = fopen(LDAP_CONF, "r")) {
 		while(fgets(buf, 256, ldap_conf)!=0) {
 			int i;
@@ -290,26 +299,54 @@ static int parse_options()
 	options.ldifname[0] = '\0';
 	strcpy(options.password, "");
 	strcpy(options.exec_command, "");
-	while ( (len = getopt(main_argc, main_argv, "b:D:e:h:H:o:p:u:Vv::w:L::"))>0 ) {
+	while (1) {
+		int this_option_optind = optind ? optind : 1;
+		int option_index = 0;
+		static struct option long_options[] = {
+			// name, has_arg, flag, val
+			{"help", 0, 0, '?'},
+			{"binddn", 1, 0, 'D'},
+			{"bindpw", 1, 0, 'w'},
+			{"basedn", 1, 0, 'b'},
+			{"output", 1, 0, 'o'},
+			{"ldif", 1, 0, 'L'},
+			{"host", 1, 0, 'h'},
+			{"port", 1, 0, 'p'},
+			{"uri", 1, 0, 'H'},
+			{"update", 1, 0, 'u'},
+			{"exec", 1, 0, 'e'},
+			{"verbose", 0, 0, 'v'},
+			{"version", 0, 0, 'V'},
+			{"timeout", 1, 0, 't'},
+			{"maxrecords", 1, 0, 'M'},
+			{0, 0, 0, 0}
+		};
+
+		c = getopt_long(main_argc, main_argv, "b:D:e:h:H:o:p:u:m:t:Vv::w:L::", long_options, &option_index);
+
+		if (c == -1)
+			break;
+
 		if (optarg && strlen(optarg)>127) {
 			fprintf(stderr, "argument %s too long\n", optarg);
 			continue;
 		}
-		switch (len) {
-		    case 'b':
+
+		switch (c) {
+	    case 'b':
 			strncpy(options.searchbase, optarg, sizeof(options.searchbase));
 			options.searchbase[ sizeof(options.searchbase) -1] = '\0';
 			break;
-		    case 'u':
+	    case 'u':
 			if (sscanf(optarg, "%d", &options.update_iv)!=1)
 				options.update_iv = UPDATE_INTERVAL;
 			if (options.update_iv<=0) options.update_iv = 1;
 			break;
-		    case 'D':
+	    case 'D':
 			strncpy(options.binddn, optarg, sizeof(options.binddn));
 			options.binddn[ sizeof(options.binddn) -1 ] = '\0';
 			break;
-		    case 'h':
+	    case 'h':
 			strncpy(options.hostname[0], optarg, sizeof(options.hostname[0]));
 			options.hostname[0][ sizeof(options.hostname[0]) -1 ] = '\0';
 			options.usedhosts = 1;
@@ -319,7 +356,7 @@ static int parse_options()
 			options.urildap[0][ sizeof( options.urildap[0] ) -1 ] = '\0';
 			options.useduris = 1;
 			break;
-		    case 'L':
+	    case 'L':
 			if (optarg==NULL)
 				strcpy(options.ldifname, "-");
 			else{
@@ -327,36 +364,45 @@ static int parse_options()
 				options.ldifname[ sizeof( options.ldifname ) -1 ] = '\0';
 			}
 			break;
-		    case 'o':
+	    case 'o':
 			options.output = 0;
 			if (strcmp(optarg, "data")==0)
 				options.output = OUTPUT_DATA;
 			else if (strcmp(optarg, "db")==0)
 				options.output = OUTPUT_DB;
 			break;
-		    case 'p':
+	    case 'p':
 			if (sscanf(optarg, "%hd", &options.port[0])!=1)
 				options.port[0] = LDAP_PORT;
 			break;
-		    case 'v':
+	    case 'v':
 			if (optarg && optarg[0]=='v')
 				options.verbose = 3;
 			else
 				options.verbose = 1;
 			break;
-		    case 'V':
+	    case 'V':
 			print_version();
 			exit(0);
-		    case 'w':
+	    case 'w':
 			strncpy(options.password, optarg, sizeof(options.password));
 			options.password[ sizeof( options.password ) -1 ] = '\0';
 			memset(optarg, 'x', strlen(options.password));
 			break;
-		    case 'e':
+	    case 'e':
 			strncpy(options.exec_command, optarg, sizeof(options.exec_command));
 			options.exec_command[ sizeof( options.exec_command ) -1 ] = '\0';
 			break;
-		    default:
+		case 't':
+			if (sscanf(optarg, "%hd", &options.searchtimeout.tv_sec)!=1)
+				options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
+			break;
+		case 'M':
+			if (sscanf(optarg, "%hd", &options.reclimit)!=1)
+				options.reclimit = DEF_RECLIMIT;
+			break;
+		case '?':
+		default:
 			print_usage();
 			exit(1);
 		}
@@ -557,7 +603,7 @@ static void read_resourcerecords(char* dn, int znix)
 	LDAPMessage* m;
 	int ldaperr;
 
-	if ( (ldaperr = ldap_search_s(ldap_con, dn, LDAP_SCOPE_SUBTREE, "objectclass=DNSrrset", NULL, 0, &res))!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, dn, LDAP_SCOPE_SUBTREE, "objectclass=DNSrrset", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
 		BerElement* ber = NULL;
@@ -754,7 +800,7 @@ static void calc_checksum(int* num, int* sum)
 	char* attr_list[2] = { "DNSserial", NULL };
 
 	*num = *sum = 0;
-	if ( ldaperr = ldap_search_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", attr_list, 0, &res)!=LDAP_SUCCESS )
+	if ( ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
 		BerElement* ber = NULL;
@@ -786,7 +832,7 @@ static void read_dnszones(void)
 		fprintf(tinyfile, "# Automatically generated by ldap2dns v%s - DO NOT EDIT!\n", VERSION);
 	if (namedmaster)
 		fprintf(namedmaster, "# Automatically generated by ldap2dns v%s - DO NOT EDIT!\n", VERSION);
-	if ( (ldaperr = ldap_search_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", NULL, 0, &res))!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
 		BerElement* ber = NULL;
@@ -927,13 +973,7 @@ static void read_loccodes(void)
 	if (tinyfile)
 		fprintf(tinyfile, "# Location Codes (if any) - generated by ldap2dns v%s - DO NOT EDIT!\n", VERSION);
 
-	if ( (ldaperr = ldap_search_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, 
-								  LDAP_SCOPE_SUBTREE, 
-								  "objectclass=DNSloccodes", 
-								  NULL, 
-								  0, 
-								  &res)
-			 )!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSloccodes", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
 		BerElement* ber = NULL;

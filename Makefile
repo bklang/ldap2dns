@@ -1,9 +1,9 @@
 # $Id$ 
-VERSION=0.3.7
+VERSION=0.4.0
 RELEASE=0
-CC=gcc -O2
-CCDEBUG=gcc -g -ggdb
-CFLAGS=$(INC) -DVERSION='"$(VERSION)"'
+CC=gcc
+DEBUG_CFLAGS=-g -ggdb
+CFLAGS=-O2
 LIBS=-lldap -llber
 LD=gcc 
 LDFLAGS=
@@ -40,10 +40,10 @@ ldap2dns-dbg: ldap2dns.o-dbg
 	$(LD) $(LDFLAGS) $(LIBS) -o $@ $+
 
 ldap2dns.o: ldap2dns.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -DVERSION='"$(VERSION)"' -c $< -o $@
 
 ldap2dns.o-dbg: ldap2dns.c
-	$(CCDEBUG) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEBUG_CFLAGS) $(CFLAGS) -DVERSION='"$(VERSION)"' -c $< -o $@
 
 install: all
 	mkdir -p $(PREFIXDIR)/bin
