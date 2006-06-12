@@ -1196,7 +1196,7 @@ int main(int argc, char** argv)
 		if (options.exec_command[0])
 			system(options.exec_command);
 	    skip:
-		if ( (ldaperr = ldap_unbind_s(ldap_con))!=LDAP_SUCCESS )
+		if ( (ldaperr = ldap_unbind_ext_s(ldap_con, NULL, NULL))!=LDAP_SUCCESS )
 			die_ldap(ldaperr);
 		if (options.is_daemon==0)
 			break;
