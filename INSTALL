@@ -13,6 +13,17 @@ make DISTRIBUTION=suse rpm
 
 if you are running Red Hat or SuSE respectively.
 
+Solaris 8 and later:
+Install the Blastwave OpenLDAP package.  For more information on Blastwave see
+http://www.blastwave.org
+
+Tested with Blastwave and SFW gcc as well as Sun Studio cc (SUNWspro).
+You will also need to use gmake instead of Solaris' make.
+This line will compile ldap2dns with SUNWspro and Blastwave OpenLDAP:
+
+gmake CC=/opt/SUNWspro/bin/cc LD=/opt/SUNWspro/bin/cc \
+    CFLAGS=-I/opt/csw/include LDFLAGS="-L/opt/csw/lib -R/opt/csw/lib"
+
 For updates, changes and some documentation, see http://projects.alkaloid.net
 
 Please send any problem or success reports to the maintainer.
