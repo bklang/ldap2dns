@@ -1,6 +1,6 @@
 # $Id$ 
 VERSION=0.4.0
-RELEASE=0
+RELEASE=pre1
 CC=gcc
 DEBUG_CFLAGS=-g -ggdb
 CFLAGS=-O2
@@ -48,10 +48,10 @@ ldap2dns.o-dbg: ldap2dns.c
 install: all
 	mkdir -p $(PREFIXDIR)/bin
 	mkdir -p $(LDAPCONFDIR)/schema
-	install -s -o root -g root -m 755 ldap2dns $(PREFIXDIR)/bin/
+	install -s -m 755 ldap2dns $(PREFIXDIR)/bin/
 	ln -f $(PREFIXDIR)/bin/ldap2dns $(PREFIXDIR)/bin/ldap2dnsd
-	install -o root -g root -m 755 ldap2tinydns-conf $(PREFIXDIR)/bin/
-	install -o root -g root -m 644 ldap2dns.schema $(LDAPCONFDIR)/schema/
+	install -m 755 ldap2tinydns-conf $(PREFIXDIR)/bin/
+	install -m 644 ldap2dns.schema $(LDAPCONFDIR)/schema/
 
 clean:
 	rm -f *.o *.o-dbg ldap2dns ldap2dns-dbg ldap2dnsd data* *.db core \
