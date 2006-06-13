@@ -9,6 +9,7 @@ Version 0.4.0-pre1 (latest)
 + Replaced all deprecated LDAP API calls
 + Converted to getopt_long and added double-dash options (--help)
 + Added search timeout and max record count options
++ Added warnings when zero records are returned from searches
 
 Version 0.3.7
 + Changed default location of ldap.conf to /etc/ldap.conf
