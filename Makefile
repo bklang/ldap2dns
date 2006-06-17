@@ -1,6 +1,6 @@
 # $Id$ 
 VERSION=0.4.0
-RELEASE=pre1
+RELEASE=0
 CC=gcc
 DEBUG_CFLAGS=-g -ggdb
 CFLAGS=-O2

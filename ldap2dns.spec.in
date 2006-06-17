@@ -39,7 +39,11 @@ interfering with the DNS server.
 ldap2dns is designed to write the text data files used by tinydns, but also
 may be used to write zone files used by Bind.
 
+# RedHat defaults to building the debug_package while SuSE does not
+%if %{undefined suse_version}
 %debug_package
+%endif
+
 %prep
 %setup
 
