@@ -52,7 +52,9 @@ $basedn =~ /^ou=([^,]+)/;
 my $baserdn = $1;
 
 if (!$baserdn) {
-    die("Unable to determine branch node from supplied DN");
+    print STDERR "Unable to determine branch node for DNS data from supplied DN\n";
+    print STDERR "Put an \"ou=foo\" branch in the DN\n";
+    die;
 }
 
 # Create the base DN for DNS entries
@@ -140,14 +142,14 @@ LINE: while(<DATA>) {
             my ($fqdn, $ip, $x, $ttl, $timestamp, $loc) = split /:/;
             $fqdn =~ s/^\.//;
 
-            # To find the domain name, the fqdn must have two words of any
-            # characters with one period somehere in the middle and an optional
-            # trailing period (which is trimmed) just before the end of the line
-            $fqdn =~ /^\.*([A-Za-z0-9-]+\.[A-Za-z0-9-]+)\.*$/;
-            if (!defined($1)) {
-                die ("Unable to find domain name for $fqdn!\n");
+            if (!length($x)) {
+                print STDERR "Missing hostname in NS/A/SOA record: $_\n";
+                $errorrecs++;
+                print $rejfh "$_\n";
+                next LINE;
             }
-            my $domain = getdomain($fqdn);
+
+            my $domain = $fqdn;
             if (defined($domains{$domain})) { 
                 # We've already generated an SOA for this domain
                 next LINE;
@@ -157,7 +159,13 @@ LINE: while(<DATA>) {
             print $outfh "objectClass: dnszone\n";
             print $outfh "cn: $domain\n";
             print $outfh "dnszonename: $domain\n";
-            print $outfh "dnszonemaster: $x\n";
+            print $outfh "dnszonemaster: $x";
+            # If $x contains a period treat it as fully qualified
+            if ($x =~ /\./) {
+                print $outfh ".";
+            }
+            print $outfh "\n";
+                
             print $outfh "dnsadminmailbox: hostmaster.$domain\n";
             print $outfh "dnsserial: $newserial\n";
             if (defined($ttl)) { print $outfh "dnsttl: $ttl\n"; }
@@ -205,7 +213,12 @@ LINE: while(<DATA>) {
             print $outfh "cn: $id\n";
             print $outfh "dnstype: ns\n";
             print $outfh "dnsdomainname: $fqdn.\n";
-            if ($x) { print $outfh "dnscname: $x.\n"; }
+            if ($x) { print $outfh "dnscname: $x"; }
+            # If $x contains a period treat it as fully qualified
+            if ($x =~ /\./) {
+                print $outfh ".";
+            }
+            print $outfh "\n";
             if ($ip) { print $outfh "dnsipaddr: $ip\n"; }
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
@@ -426,6 +439,7 @@ exit 0;
 sub getdomain
 {
     my $fqdn = shift(@_);
+    # strip off characters up to the first '.' leaving the domain
     $fqdn =~  /[^\.]*\.(.*)/;
     return $1;
 }
