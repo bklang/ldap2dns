@@ -1,6 +1,9 @@
 # $Id$
+Version 0.4.1 (latest)
+* Updated scripts/data2ldif.pl to properly handle reverse domains
+* Fixed parser bugs in scripts/data2ldif.pl
 
-Version 0.4.0 (latest)
+Version 0.4.0
 + Corrected segfault when using BIND output with SRV records
 + Fixed off-by-one string termination problem
 + Fixed a number of possible segfaults if required cmdline options were missing
