@@ -204,7 +204,7 @@ LINE: while(<DATA>) {
             if (!defined($timestamp)) { $timestamp = ""; }
             if (!defined($loc)) { $loc = ""; }
             my $id = "NSA-$fqdn-$ip-$x-$ttl-$timestamp-$loc";
-            my $domain = getdomain($fqdn);
+            my $domain = $fqdn;
 
             print $outfh "dn: cn=$id,cn=$domain,$basedn\n";
             print $outfh "objectClass: top\n";
