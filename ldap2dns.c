@@ -323,7 +323,7 @@ static int parse_options()
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(main_argc, main_argv, "b:D:e:h:H:o:p:u:m:t:Vv::w:L::", long_options, &option_index);
+		c = getopt_long(main_argc, main_argv, "b:D:e:h:H:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
 
 		if (c == -1)
 			break;
@@ -983,7 +983,6 @@ static void read_loccodes(void)
 	LDAPMessage* res = NULL;
 	LDAPMessage* m;
 	int ldaperr;
-
 
 	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSloccodes", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
