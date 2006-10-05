@@ -23,7 +23,7 @@
 #define OUTPUT_DB 2
 #define MAXHOSTS 10
 #define DEF_SEARCHTIMEOUT 40
-#define DEF_RECLIMIT 5000
+#define DEF_RECLIMIT LDAP_NO_LIMIT
 
 static char tinydns_textfile[256];
 static char tinydns_texttemp[256];
@@ -195,7 +195,6 @@ static void parse_hosts(char* buf)
         options.useduris = 0;
         for (i = 0; i<MAXHOSTS; i++) {
 		if (!strncasecmp(buf, "ldaps://", 8) || !strncasecmp(buf, "ldap://", 7)) {
-			// LDAP-URI is given/found, at the moment only the standard-ports 389 and 636 are supported
 			if (!strncasecmp(buf, "ldap://", 7))
 				options.use_tls[i] = 1;
 			if ((k = sscanf(buf, "%128s %512[A-Za-z0-9 .:/_+-]", value, rest))>=1) {
