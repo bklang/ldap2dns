@@ -1,5 +1,5 @@
 # $Id$ 
-VERSION=0.4.0
+VERSION=0.4.1
 RELEASE=0
 CC=gcc
 DEBUG_CFLAGS=-g -ggdb
