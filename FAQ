@@ -1,4 +1,19 @@
-1) Where can I find a web interface?
+1) My build bails out with nearly three screens full of error messages!
+2006-10-04 bklang
+
+If the first two lines of that error output look like:
+
+ldap2dns.c:9:18: error: lber.h: No such file or directory
+ldap2dns.c:10:18: error: ldap.h: No such file or directory
+
+then you need to make the include files available to the compiler.  Usually that
+means that the openldap-devel (openldap2-devel for SuSE) package needs to be
+installed.  If you're running on Solaris or have installed OpenLDAP into a
+non-standard location then you'll need to modify the Makefile to pass the path
+to those header files to the compiler.
+
+
+2) Where can I find a web interface?
 2005-06-06 bklang
 
 The official web interface of ldap2dns is "Beatnik."  Beatnik is a module for
@@ -9,7 +24,7 @@ the code from SVN trunk.  The author uses Beatnik productively today.
 See http://projects.alkaloid.net for more information.
 
 
-2) What happened to the webadmin directory?
+3) What happened to the webadmin directory?
 
 2005-12-22 bklang
 ** See security note at the end of this section regarding the old webadmin **
@@ -37,7 +52,7 @@ responsibility for any problems related to the flawed webadmin code.
 Thanks to Erik Cabetas for bringing these issues to my attention.
 
 
-3) Why have you deprecated all that code?
+4) Why have you deprecated all that code?
 
 2005-12-07 bklang
 This is partially answered above, but to fully answer the question it's not
@@ -54,25 +69,3 @@ You have been warned. Caveat emptor.
 
 
 # $Id$
-
--- Old FAQ entry below (meaning is unclear to me -- 2005/12/07 bklang --
-
-From: Steven Dossett <sdossett@panath.com>
-Right after I mailed you, I patched the schema :)
-I moved from IA5 Strings to Numeric Strings in that section of the schema:
-
-attributetype ( 1.3.6.1.4.1.7222.1.4.12
-        NAME 'dnsipaddr'
-        EQUALITY numericStringMatch
-        SUBSTR numericStringSubstringsMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{16} )
-
-attributetype ( 1.3.6.1.4.1.7222.1.4.13
-        NAME 'dnscipaddr'
-        EQUALITY numericStringMatch
-        SUBSTR numericStringSubstringsMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{16} )
-
-Thanks for the quick reply. Take care.
-
-
