@@ -1,10 +1,15 @@
 # $Id$
 Version 0.4.1 (latest)
 * Updated scripts/data2ldif.pl to properly handle reverse domains
-* Fixed parser bugs in scripts/data2ldif.pl
+* Fixed parser bugs in scripts/data2ldif.pl (Thanks Fleischmann Bonaventura and
+  Adrian Goins)
+* Added missing option -M (Thanks Jason Chambers)
+* Change default record limit to LDAP_NO_LIMIT
+* Tightned up LDAP search scope when calculating the checksum (Thanks Jason
+  Chambers for the bug report)
 
 Version 0.4.0
-+ Corrected segfault when using BIND output with SRV records
++ Corrected segfault when using BIND output with SRV records (Thanks Fred Leitz)
 + Fixed off-by-one string termination problem
 + Fixed a number of possible segfaults if required cmdline options were missing
   Thanks Steve Ayotte (sayotte.alkaloid.net)
