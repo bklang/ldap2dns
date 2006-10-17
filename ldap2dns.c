@@ -265,6 +265,7 @@ static int parse_options()
 		fclose(ldap_conf);
 	}
 	strcpy(options.binddn, "");
+	strcpy(options.password, "");
 	len = strlen(main_argv[0]);
 	if (strcmp(main_argv[0]+len-9, "ldap2dnsd")==0) {
 		options.is_daemon = 1;
@@ -297,7 +298,6 @@ static int parse_options()
 	}
 	options.verbose = 0;
 	options.ldifname[0] = '\0';
-	strcpy(options.password, "");
 	strcpy(options.exec_command, "");
 	while (1) {
 		int this_option_optind = optind ? optind : 1;
