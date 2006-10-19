@@ -7,6 +7,9 @@ Version 0.4.1 (latest)
 * Change default record limit to LDAP_NO_LIMIT
 * Tightned up LDAP search scope when calculating the checksum (Thanks Jason
   Chambers for the bug report)
+* Fixed bug reading the LDAP bind password out of the environment (Thanks Nick
+  Gregory for the bug report)
+* Updated FAQ
 
 Version 0.4.0
 + Corrected segfault when using BIND output with SRV records (Thanks Fred Leitz)

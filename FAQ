@@ -12,8 +12,24 @@ installed.  If you're running on Solaris or have installed OpenLDAP into a
 non-standard location then you'll need to modify the Makefile to pass the path
 to those header files to the compiler.
 
+2) How do I use DNS TXT records?
+(Or: Why do I need that trailing '.'?)
+(Or: Why do my DNS TXT records get corrupted?)
+2006-10-19 bklang
+Due to an original design decision, ldap2dns uses the DNScname attribute to 
+store DNS TXT data.  This field is normally checked to see if it should be 
+expanded to include a trailing domain name (that is, any string that does not 
+end with a '.').  The "best" way to create  DNS txt record for now is to create
+the TXT entry as you normally would, then simply append a '.'.  The '.' will not
+be included in the resulting record and will prevent expansion or other 
+modification of the record.
 
-2) Where can I find a web interface?
+This limitation is scheduled to be corrected around ldap2dns version 0.4.2.
+Tentatively, this will see the introduction of a new attribute dedicated to
+TXT records that will bypass any form of expansion.
+
+
+3) Where can I find a web interface?
 2005-06-06 bklang
 
 The official web interface of ldap2dns is "Beatnik."  Beatnik is a module for
@@ -24,7 +40,7 @@ the code from SVN trunk.  The author uses Beatnik productively today.
 See http://projects.alkaloid.net for more information.
 
 
-3) What happened to the webadmin directory?
+4) What happened to the webadmin directory?
 
 2005-12-22 bklang
 ** See security note at the end of this section regarding the old webadmin **
@@ -52,7 +68,7 @@ responsibility for any problems related to the flawed webadmin code.
 Thanks to Erik Cabetas for bringing these issues to my attention.
 
 
-4) Why have you deprecated all that code?
+5) Why have you deprecated all that code?
 
 2005-12-07 bklang
 This is partially answered above, but to fully answer the question it's not
