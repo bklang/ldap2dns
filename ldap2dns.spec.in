@@ -27,17 +27,16 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-build
 Autoreqprov:	 on
 
 %description
-ldap2dns is a program to create DNS records directly from an LDAP database. It
-can be be used to replace the secondary name-server by a second primary one.
-ldap2dns helps to reduce all kind of administration overhead. No more flat file
-editing, no more zone file editing. After having installed ldap2dns, the
-administrator only has to access the LDAP database.
-If he desires he can add access control for each zone, create a webbased GUI
-and add all other kind of zone and resource record information without
-interfering with the DNS server.
+ldap2dns is a program to read DNS (Domain Name Service) records from an LDAP
+directory and format them into flat files suitable for TinyDNS (or Bind).
 
-ldap2dns is designed to write the text data files used by tinydns, but also
-may be used to write zone files used by Bind.
+ldap2dns reduces all kind of administration overhead: No more flat file editing,
+no more zone file editing. After having installed ldap2dns, the administrator
+only has to modify the data stored in the LDAP directory.
+
+Optionally access control can be configured for each zone, GUIs can be more
+easily implemented, and add all other kind of zone and resource record
+information can be managed without interfering with the DNS server.
 
 # RedHat defaults to building the debug_package while SuSE does not
 # If we detect SuSE then build the debug_package
