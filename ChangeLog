@@ -1,5 +1,11 @@
 # $Id$
-Version 0.4.1 (latest)
+Version 0.4.2-beta (latest)
+* Ensure all options get initialized to defaults before any attempts at setting
+  them via configuration, environment, or cmdline args.
+* Allow all cmdline args to be set optionally using environment variables
+* Updated documentation and added plaintext version
+
+Version 0.4.1 - 2006/10/19
 * Updated scripts/data2ldif.pl to properly handle reverse domains
 * Fixed parser bugs in scripts/data2ldif.pl (Thanks Fleischmann Bonaventura and
   Adrian Goins)
@@ -11,7 +17,7 @@ Version 0.4.1 (latest)
   Gregory for the bug report)
 * Updated FAQ
 
-Version 0.4.0
+Version 0.4.0 - 2006/06/17
 + Corrected segfault when using BIND output with SRV records (Thanks Fred Leitz)
 + Fixed off-by-one string termination problem
 + Fixed a number of possible segfaults if required cmdline options were missing
@@ -22,7 +28,7 @@ Version 0.4.0
 + Added search timeout and max record count options
 + Added warnings when zero records are returned from searches
 
-Version 0.3.7
+Version 0.3.7 - Unreleased.
 + Changed default location of ldap.conf to /etc/ldap.conf
 + Added note on potential security vulns in deprecated/webadmin to README
 + Changed port declarations/format strings from int to unsigned short
@@ -32,7 +38,7 @@ Version 0.3.7
 + Fixed typo in ldap2dns.spec.in
 + Updated example ldif in doc/ (Thanks Marc Huot)
 
-Version 0.3.6
+Version 0.3.6 - 2005/12/16
 + New maintainer: Ben Klang <ben@alkaloid.net>
 + Fixed bug with duplicate OIDs in dns.schema from partially applied patch
 + Renamed schema file to ldap2dns.schema

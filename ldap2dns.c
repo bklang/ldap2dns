@@ -234,12 +234,31 @@ static int parse_options()
 	int digit_optind = 0;
 	FILE* ldap_conf,*fp;
 	char* ev;
+	int tmp;
+	int i;
 
+	/* Initialize the options to their defaults */
+	len = strlen(main_argv[0]);
+	if (strcmp(main_argv[0]+len-9, "ldap2dnsd")==0) {
+		options.is_daemon = 1;
+		options.update_iv = UPDATE_INTERVAL;
+	} else {
+		options.is_daemon = 0;
+		options.update_iv = 0;
+	}
+	strcpy(options.binddn, "");
+	strcpy(options.password, "");
 	strcpy(options.searchbase, "");
 	strcpy(options.hostname[0], "localhost");
 	options.port[0] = LDAP_PORT;
 	options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
 	options.reclimit = DEF_RECLIMIT;
+	options.output = 0;
+	options.verbose = 0;
+	options.ldifname[0] = '\0';
+	strcpy(options.exec_command, "");
+
+	/* Attempt to parse the ldap.conf for system-wide valuse */
 	if (ldap_conf = fopen(LDAP_CONF, "r")) {
 		while(fgets(buf, 256, ldap_conf)!=0) {
 			int i;
@@ -264,21 +283,51 @@ static int parse_options()
 		}
 		fclose(ldap_conf);
 	}
-	strcpy(options.binddn, "");
-	strcpy(options.password, "");
-	len = strlen(main_argv[0]);
-	if (strcmp(main_argv[0]+len-9, "ldap2dnsd")==0) {
+
+	/* Check the environment for process-local configuration overrides */
+        if (getenv("LDAP2DNS_DAEMONIZE") != NULL) {
 		options.is_daemon = 1;
-		options.update_iv = UPDATE_INTERVAL;
-	} else {
-		options.is_daemon = 0;
-		options.update_iv = 0;
+		ev = getenv("LDAP2DNS_UPDATE");
+		if (ev && sscanf(ev, "%d", &len)==1 && len>0) {
+			options.update_iv = len;
+		} else {
+			/* We have not yet had a chance to override the default
+		 	 * interval so use the default.
+                 	 */
+			options.update_iv = UPDATE_INTERVAL;
+		}
 	}
-	ev = getenv("LDAP2DNS_UPDATE");
-	if (ev && sscanf(ev, "%d", &len)==1 && len>0) {
-		options.update_iv = len;
+	ev = getenv("LDAP2DNS_BINDDN");
+	if (ev) {
+		strncpy(options.binddn, ev, sizeof(options.binddn));
+		options.binddn[ sizeof(options.binddn) -1 ] = '\0';
+		ev = getenv("LDAP2DNS_PASSWORD");
+		if (ev){
+			strncpy(options.password, ev, sizeof(options.password));
+			options.password[ sizeof(options.password) -1 ] = '\0';
+		}
 	}
-	options.output = 0;
+	ev = getenv("LDAP2DNS_BASEDN");
+	if (ev) {
+		strncpy(options.searchbase, ev, sizeof(options.searchbase));
+		options.searchbase[ sizeof(options.searchbase) -1 ] = '\0';
+	}
+	ev = getenv("LDAP2DNS_HOST");
+	if (ev) {
+		strncpy(options.hostname[options.usedhosts], ev, sizeof(options.hostname[options.usedhosts]));
+		options.hostname[options.usedhosts][ sizeof(options.hostname[options.usedhosts]) -1 ] = '\0';
+		options.usedhosts++;
+		ev = getenv("LDAP2DNS_PORT");
+		if (ev && sscanf(ev, "%hd", &tmp) != 1)
+			for (i = 0; i<MAXHOSTS; i++)
+				options.port[i] = tmp;
+	}
+	ev = getenv("LDAP2DNS_TIMEOUT");
+	if (ev && sscanf(ev, "%hd", &options.searchtimeout.tv_sec) != 1)
+		options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
+	ev = getenv("LDAP2DNS_RECLIMIT");
+	if (ev && sscanf(ev, "%d", &options.reclimit) != 1)
+		options.reclimit = DEF_RECLIMIT;
 	ev = getenv("LDAP2DNS_OUTPUT");
 	if (ev) {
 		if (strcmp(ev, "data")==0)
@@ -286,19 +335,16 @@ static int parse_options()
 		else if (strcmp(ev, "db")==0)
 			options.output = OUTPUT_DB;
 	}
-	ev = getenv("LDAP2DNS_BINDDN");
+	ev = getenv("LDAP2DNS_VERBOSE");
+	if (ev && sscanf(ev, "%hd", &options.verbose) != 1)
+		options.verbose = 0;
+	ev = getenv("LDAP2DNS_EXEC");
 	if (ev) {
-		strncpy(options.binddn, ev, sizeof(options.binddn));
-		options.binddn[ sizeof(options.binddn)-1] = '\0';
-		ev = getenv("LDAP2DNS_PASSWORD");
-		if (ev){
-			strncpy(options.password, ev, sizeof(options.password));
-			options.password[ sizeof(options.password) -1 ] = '\0';
-		}
+		strncpy(options.exec_command, ev, sizeof(options.exec_command));
+		options.exec_command[ sizeof( options.exec_command ) -1 ] = '\0';
 	}
-	options.verbose = 0;
-	options.ldifname[0] = '\0';
-	strcpy(options.exec_command, "");
+	
+	/* Finally, parse command-line options */
 	while (1) {
 		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
@@ -333,30 +379,30 @@ static int parse_options()
 		}
 
 		switch (c) {
-	    case 'b':
+		case 'b':
 			strncpy(options.searchbase, optarg, sizeof(options.searchbase));
-			options.searchbase[ sizeof(options.searchbase) -1] = '\0';
+			options.searchbase[ sizeof(options.searchbase)-1 ] = '\0';
 			break;
-	    case 'u':
+		case 'u':
 			if (sscanf(optarg, "%d", &options.update_iv)!=1)
 				options.update_iv = UPDATE_INTERVAL;
 			if (options.update_iv<=0) options.update_iv = 1;
 			break;
-	    case 'D':
+		case 'D':
 			strncpy(options.binddn, optarg, sizeof(options.binddn));
 			options.binddn[ sizeof(options.binddn) -1 ] = '\0';
 			break;
-	    case 'h':
-			strncpy(options.hostname[0], optarg, sizeof(options.hostname[0]));
-			options.hostname[0][ sizeof(options.hostname[0]) -1 ] = '\0';
-			options.usedhosts = 1;
+		case 'h':
+			strncpy(options.hostname[options.usedhosts], optarg, sizeof(options.hostname[options.usedhosts]));
+			options.hostname[options.usedhosts][ sizeof(options.hostname[options.usedhosts]) -1 ] = '\0';
+			options.usedhosts++;
 			break;
 		case 'H':
 			strncpy(options.urildap[0], optarg, sizeof(options.urildap[0]));
 			options.urildap[0][ sizeof( options.urildap[0] ) -1 ] = '\0';
 			options.useduris = 1;
 			break;
-	    case 'L':
+		case 'L':
 			if (optarg==NULL)
 				strcpy(options.ldifname, "-");
 			else{
@@ -364,32 +410,32 @@ static int parse_options()
 				options.ldifname[ sizeof( options.ldifname ) -1 ] = '\0';
 			}
 			break;
-	    case 'o':
+		case 'o':
 			options.output = 0;
 			if (strcmp(optarg, "data")==0)
 				options.output = OUTPUT_DATA;
 			else if (strcmp(optarg, "db")==0)
 				options.output = OUTPUT_DB;
 			break;
-	    case 'p':
+		case 'p':
 			if (sscanf(optarg, "%hd", &options.port[0])!=1)
 				options.port[0] = LDAP_PORT;
 			break;
-	    case 'v':
-			if (optarg && optarg[0]=='v')
-				options.verbose = 3;
+		case 'v':
+			if (optarg)
+				options.verbose = strlen(optarg) + 1;
 			else
 				options.verbose = 1;
 			break;
-	    case 'V':
+		case 'V':
 			print_version();
 			exit(0);
-	    case 'w':
+		case 'w':
 			strncpy(options.password, optarg, sizeof(options.password));
 			options.password[ sizeof( options.password ) -1 ] = '\0';
 			memset(optarg, 'x', strlen(options.password));
 			break;
-	    case 'e':
+		case 'e':
 			strncpy(options.exec_command, optarg, sizeof(options.exec_command));
 			options.exec_command[ sizeof( options.exec_command ) -1 ] = '\0';
 			break;
@@ -398,7 +444,7 @@ static int parse_options()
 				options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
 			break;
 		case 'M':
-			if (sscanf(optarg, "%hd", &options.reclimit)!=1)
+			if (sscanf(optarg, "%d", &options.reclimit)!=1)
 				options.reclimit = DEF_RECLIMIT;
 			break;
 		case '?':
