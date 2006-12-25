@@ -9,7 +9,8 @@ LD=gcc
 LDFLAGS=
 INSTALL_PREFIX=
 PREFIXDIR=$(INSTALL_PREFIX)/usr
-LDAPCONFDIR=$(INSTALL_PREFIX)/etc/openldap
+LDAPCONFDIR=$(PREFIXDIR)/etc/openldap
+MANDIR=$(PREFIXDIR)/man/man1
 SPECFILE=ldap2dns.spec
 DISTRIBUTION=redhat
 
@@ -48,10 +49,12 @@ ldap2dns.o-dbg: ldap2dns.c
 install: all
 	mkdir -p $(PREFIXDIR)/bin
 	mkdir -p $(LDAPCONFDIR)/schema
+	mkdir -p $(MANDIR)
 	install -s -m 755 ldap2dns $(PREFIXDIR)/bin/
 	ln -f $(PREFIXDIR)/bin/ldap2dns $(PREFIXDIR)/bin/ldap2dnsd
 	install -m 755 ldap2tinydns-conf $(PREFIXDIR)/bin/
 	install -m 644 ldap2dns.schema $(LDAPCONFDIR)/schema/
+	install -m 644 ldap2dns.1 $(MANDIR)
 
 clean:
 	rm -f *.o *.o-dbg ldap2dns ldap2dns-dbg ldap2dnsd data* *.db core \

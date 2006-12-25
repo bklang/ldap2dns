@@ -1,0 +1,161 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH LDAP2DNS 1 "December 24, 2006"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+ldap2dns \- LDAP based DNS management system
+.SH SYNOPSIS
+.B ldap2dns[d]
+.RI [ "-o data|db" "] [" "-h host" "] [" "-p port" "] [" "-H hostURI" "] [" "-D binddn" "] [" "-w password" "] [" "-L[filename]" "] [" "-u numsecs" "] [" "-b searchbase" "] [" "-v[v]]" "] [" "-V" "] [" "-t timeout" "] [" "-M maxrecords" ]
+.br
+.SH DESCRIPTION
+.B ldap2dns
+is a program to read DNS records
+from an LDAP directory and format them
+into flat files suitable for serving from
+TinyDNS or BIND.
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+\fBldap2dns\fP
+is designed to write ASCII data files used by
+.B tinydns
+from the 
+.B djbdns
+package, but also may be used to write zone db files used by named as found
+.B BIND
+in the package.
+.
+
+.SH OPTIONS
+A summary of each command line option is shown below along with its environment
+variable equivalent.  Each option may be set in either location, with the
+command line taking precedence over the environment variables.
+.TP
+.B \-o [data|db] ($LDAP2DNS_OUTPUT)
+Generate a "data" file to be processed by
+.B tinydns-data
+or a set of zone "db"s (one per zone) to be used by
+.B named
+.TP
+.B \-h host ($LDAP2DNS_HOST)
+Hostname of LDAP server, defaults to localhost.
+.TP
+.B \-p port ($LDAP2DNS_PORT)
+Port number on which to connect to LDAP server, defaults to 389
+.TP
+.B \-H hostURI ($LDAP2DNS_URI)
+URI for the LDAP server.  Examples:
+
+.B ldap://localhost:389
+
+.B ldaps://host.example.com:636
+.TP
+.B \-D binddn ($LDAP2DNS_BINDDN)
+Use the distinguished name binddn to bind to the LDAP directory.
+.TP
+.B \-w bindpasswd ($LDAP2DNS_PASSWORD)
+Use bindpasswd as the password for simple authentication.
+.TP
+.B \-b searchbase ($LDAP2DNS_BASEDN)
+Use searchbase as the starting point for the search instead of the default.
+.TP
+.B \-L[filename] (Command-line only)
+Print output in LDIF format for reimport.  If filename is not specified default
+to STDOUT.
+.TP
+.B \-u numsecs ($LDAP2DNS_UPDATE)
+Update DNS data after numsecs. Defaults to 59 if started as daemon.
+
+NOTE: Zone data is only updated when the zone serial number increments.
+.TP
+.B \-v[v] ($LDAP2DNS_VERBOSE)
+Set verbose level.  On the command line, increase verbosity by adding 'v's.
+When setting via the environment, specify the level directly.  Maximum
+meaningful value is 2 (-vv).
+.TP
+.B \-t timeout ($LDAP2DNS_TIMEOUT)
+LDAP search timeout (in seconds).
+.TP
+.B \-M maxrecords ($LDAP2DNS_MAXRECORDS)
+Limit LDAP search results to maxrecords number of records.
+.TP
+.B \-V (Command-line only)
+Print version number and exit.
+.TP
+.B \ -e "exec-cmd" ($LDAP2DNS_EXEC)
+This command is executed after ldap2dns successfully regenerates its zone
+data files.  Typically called to either notify named to reread the configuration
+or run
+.B tinydns-data
+to update data.cdb.
+
+.SH ENVIRONMENT
+
+.B LDAP2DNS_TINYDNSDIR
+The root-directory used by tinydns, ie. the one in which to tinydns expects
+its 'data'-file.  If this option is not specified, the "data" file is written
+to the current directory.
+
+The following environment variables are documented above with the command-line
+options.  They are listed here for convenience.
+.B LDAP2DNS_OUTPUT
+
+.B LDAP2DNS_HOST
+
+.B LDAP2DNS_PORT
+
+.B LDAP2DNS_URI
+
+.B LDAP2DNS_BINDDN
+
+.B LDAP2DNS_PASSWORD
+
+.B LDAP2DNS_BASEDN
+
+.B LDAP2DNS_UPDATE
+
+.B LDAP2DNS_VERBOSE
+
+.B LDAP2DNS_TIMEOUT
+
+.B LDAP2DNS_MAXRECORDS
+
+.B LDAP2DNS_EXEC
+
+.SH FILES
+
+/etc/openldap/ldap.conf
+.br
+.b ldap2dns
+will read the options
+HOST, PORT, URI, BINDDN, and BINDPW from ldap.conf.  Their purpose and
+definition is the same as documented above and in the OpenLDAP package.
+
+.SH SEE ALSO
+
+ldap.conf(5), ldapsearch(1), tinydns, named.conf(5).
+
+Please visit the project homepage for more detail:
+.RI [ http://projects.alkaloid.net/ ]
+.br
+.SH AUTHOR
+.B ldap2dns
+is has been maintained since version 0.3.5 by Ben Klang <ben@alkaloid.net>.
+It is released under the terms of the GPL version 2.
+
+Jacob Rief <jacob.rief@tiscover.com> is the original author of this program.
