@@ -24,9 +24,10 @@ the TXT entry as you normally would, then simply append a '.'.  The '.' will not
 be included in the resulting record and will prevent expansion or other 
 modification of the record.
 
-This limitation is scheduled to be corrected around ldap2dns version 0.4.2.
-Tentatively, this will see the introduction of a new attribute dedicated to
-TXT records that will bypass any form of expansion.
+This limitation is scheduled to be corrected around ldap2dns version 0.5 as it
+breaks compatibility with existing installs.  Tentatively, this will see the
+introduction of a new attribute dedicated to TXT records that will bypass any
+form of expansion.
 
 
 3) Where can I find a web interface?
@@ -34,10 +35,10 @@ TXT records that will bypass any form of expansion.
 
 The official web interface of ldap2dns is "Beatnik."  Beatnik is a module for
 the Horde framework (http://www.horde.org).  Beatnik is actively developed and
-should be ready for release soon.  Early adopters are encouraged to checkout
-the code from SVN trunk.  The author uses Beatnik productively today.
+can be considered beta status.  Early adopters are encouraged to checkout
+the code from Horde CVS.  The author uses Beatnik in production today.
 
-See http://projects.alkaloid.net for more information.
+See http://projects.alkaloid.net and http://www.horde.org for more information.
 
 
 4) What happened to the webadmin directory?
