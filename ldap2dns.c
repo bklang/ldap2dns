@@ -139,8 +139,8 @@ static void die_exit(const char* message)
 static void set_datadir(void)
 {
 	char* ev = getenv("TINYDNSDIR");
-	if (ev == NULL)
-		char* ev = getenv("LDAP2DNS_TINYDNSDIR");
+	if (!ev)
+		ev = getenv("LDAP2DNS_TINYDNSDIR");
 	int len;
 
 	tinydns_textfile[0] = '\0';
@@ -323,6 +323,11 @@ static int parse_options()
 		if (ev && sscanf(ev, "%hd", &tmp) != 1)
 			for (i = 0; i<MAXHOSTS; i++)
 				options.port[i] = tmp;
+	}
+	ev = getenv("LDAP2DNS_URI");
+	if (ev) {
+		if (sscanf(ev, "%512[A-Za-z0-9 .:/_+-]", value)==1)
+                                parse_hosts(value);
 	}
 	ev = getenv("LDAP2DNS_TIMEOUT");
 	if (ev && sscanf(ev, "%hd", &options.searchtimeout.tv_sec) != 1)
