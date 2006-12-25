@@ -139,6 +139,8 @@ static void die_exit(const char* message)
 static void set_datadir(void)
 {
 	char* ev = getenv("TINYDNSDIR");
+	if (ev == NULL)
+		char* ev = getenv("LDAP2DNS_TINYDNSDIR");
 	int len;
 
 	tinydns_textfile[0] = '\0';
