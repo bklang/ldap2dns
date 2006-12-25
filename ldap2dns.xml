@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<!--
+	Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
+	Use is subject to license terms.
+
+	ident	"@(#)server.xml	1.3	04/12/03 SMI"
+-->
+<service_bundle type='manifest' name='ALKAldap2dns:ldap2dns'>
+
+<service
+	name='application/management/ldap2dns'
+	type='service'
+	version='1'>
+
+	<exec_method
+	    type='method'
+	    name='stop'
+	    exec=':kill'
+	    timeout_seconds='60' />
+
+	<instance name='default' enabled='false' >
+		<exec_method
+		    type='method'
+		    name='start'
+		    exec='/usr/bin/ldap2dns'
+		    timeout_seconds='60' >
+			<method_context>
+				<method_environment>
+					<envvar name='LDAP2DNS_DAEMONIZE' value='1' />
+					<envvar name='LDAP2DNS_UPDATE' value='60' />
+					<envvar name='LDAP2DNS_OUTPUT' value='data' />
+				</method_environment>
+			</method_context>
+		</exec_method>
+
+		<property_group name='startd' type='framework'>
+			<propval name='duration' type='astring' value='child' />
+		</property_group>
+
+	</instance>
+
+	<stability value='Unstable' />
+
+	<template>
+		<common_name>
+			<loctext xml:lang='C'>
+				LDAP to DNS manager
+			</loctext>
+		</common_name>
+		<documentation>
+			<manpage title='ldap2dns' section='1'
+			    manpath='/usr/man' />
+		</documentation>
+	</template>
+
+</service>
+
+</service_bundle>
