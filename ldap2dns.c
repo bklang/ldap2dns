@@ -307,6 +307,7 @@ static int parse_options()
 		if (ev){
 			strncpy(options.password, ev, sizeof(options.password));
 			options.password[ sizeof(options.password) -1 ] = '\0';
+			memset(ev, 'x', strlen(options.password));
 		}
 	}
 	ev = getenv("LDAP2DNS_BASEDN");
@@ -1215,10 +1216,14 @@ int main(int argc, char** argv)
 		nice(19);
 	}
 	set_datadir();
+
+	/* Convert our list of hosts into ldap_initialize() compatible URIs */
+	hosts2uri();
+
+	/* Main loop */
 	for (;;) {
 		int ldaperr = -1;
 
-		hosts2uri();
 			
 		res = do_connect();
 		if (res != LDAP_SUCCESS || ldap_con == NULL) {
