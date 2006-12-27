@@ -1,0 +1,79 @@
+These instructions talk about how to configure ldap2dns to work with
+Solaris 10's Service Management Framework (SMF).
+
+Start by importing the SMF manifest into the running configuration:
+$ sudo svccfg import ldap2dns.xml
+
+This imports the manifest but does not attempt to start the service.  It also
+seeds a number of important environment variables which will replace the
+command-line options to instruction ldap2dns on how to behave.
+
+Note that there is currently (12/27/2006) a bug in svccfg which prevents the
+svccfg utility from setting environment variables whose values contain the
+equals ('=') sign.  Since LDAP DNs contain the equals sign, a workaround is
+required.  Unfortunately it has the side effect of erasing any existing
+environment variables set for the service.  Thus, you must set the
+LDAP2DNS_BASEDN and LDAP2DNS_BINDDN before setting any other variables.  This
+will be true of any variable whose value contains the equals sign.
+
+The following variables are the minimal required to make ldap2dns function:
+LDAP2DNS_HOST (Can be ignored if the LDAP server is localhost)
+LDAP2DNS_BASEDN (Can be ignored if /etc/ldap.conf is properly configured)
+LDAP2DNS_BINDDN (Can be ignored if binding anonymously or ldap.conf is setup)
+LDAP2DNS_PASSWORD (Can be ignored if binding anonymously or ldap.conf is setup)
+LDAP2DNS_OUTPUT (one of "data" or "db" for TinyDNS or BIND respectively)
+TINYDNS_DIR (Only if using TinyDNS output)
+LDAP2DNS_DAEMONIZE (Must be set to non-null value)
+
+Also, you'll most likely want to set LDAP2DNS_EXEC to have the name service
+notified when changes occur.
+
+After importing the manifest, execute the following command to set any required
+environment variables that contain the equals sign.  Here is an example which
+sets BASEDN and BINDDN:
+
+$ sudo svccfg -s ldap2dns:default 'setprop start/environment = astring: ("LDAP2DNS_BASEDN=ou=DNS,dc=alkaloid,dc=net" "LDAP2DNS_BINDDN=uid=ldap2dns,ou=People,dc=alkaloid,dc=net")'
+
+Note that is one continuous line.  The single quotes are required to ensure the
+shell does not attempt to interpret the parenthesis.  The parenthesis are
+requried to ensure that svccfg interprets the two quoted values as a single
+value.  The quotes are required to separate the environment variables in SMF.
+
+If you are running multiple instances of ldap2dns, make sure you replace
+":default" with the name of the instance you want to configure.
+
+Once you've set up the variables containing equals signs, continue by setting
+any remaining required variables:
+$ sudo svccfg -s ldap2dns:default setenv -m start LDAP2DNS_PASSWORD secret
+$ sudo svccfg -s ldap2dns:default setenv -m start LDAP2DNS_HOST ldap.example.com
+$ sudo svccfg -s ldap2dns:default setenv -m start LDAP2DNS_TINYDNSDIR /etc/tinydns/root
+$ sudo svccfg -s ldap2dns:default setenv -m start LDAP2DNS_OUTPUT data
+$ sudo svccfg -s ldap2dns:default setenv -m start LDAP2DNS_DAEMONIZE true
+
+
+When complete, let SMF know it needs to re-read the configuration for the
+service:
+$ sudo svcadm refresh ldap2dns:default
+
+If you want to check your work, execute the following command to dump the 
+configured environment (note this only works after refreshing the service; to
+check before refreshing you must use svccfg):
+$ sudo svcprop -p start/environment ldap2dns:default
+
+Finally, once everything looks good, start up ldap2dns:
+$ sudo svcadm enable ldap2dns:default
+
+Check for any errors:
+$ svcs -vx ldap2dns:default
+svc:/application/management/ldap2dns:default (LDAP to DNS manager)
+ State: online since Wed Dec 27 15:12:51 2006
+   See: man -M /usr/man -s 1 ldap2dns
+   See: /var/svc/log/application-management-ldap2dns:default.log
+Impact: None.
+
+Looks good!  In case the state does not read "online" for any reason, check
+the log file
+
+/var/svc/log/application-management-ldap2dns:default.log
+
+for any errors ldap2dns reports to STDOUT.
