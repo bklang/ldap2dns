@@ -23,11 +23,10 @@
 		<exec_method
 		    type='method'
 		    name='start'
-		    exec='/usr/bin/ldap2dns'
+		    exec='/usr/bin/ldap2dnsd'
 		    timeout_seconds='60' >
 			<method_context>
 				<method_environment>
-					<envvar name='LDAP2DNS_DAEMONIZE' value='1' />
 					<envvar name='LDAP2DNS_UPDATE' value='60' />
 					<envvar name='LDAP2DNS_OUTPUT' value='data' />
 				</method_environment>
