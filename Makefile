@@ -1,18 +1,18 @@
 # $Id$ 
 VERSION=0.4.2
-RELEASE=0
-CC=gcc
-DEBUG_CFLAGS=-g -ggdb
-CFLAGS=-O2
-LIBS=-lldap -llber
-LD=gcc 
-LDFLAGS=
-INSTALL_PREFIX=
-PREFIXDIR=$(INSTALL_PREFIX)/usr
-LDAPCONFDIR=$(PREFIXDIR)/etc/openldap
-MANDIR=$(PREFIXDIR)/man/man1
-SPECFILE=ldap2dns.spec
-DISTRIBUTION=redhat
+RELEASE?=0
+CC?=gcc
+DEBUG_CFLAGS?=-g -ggdb
+CFLAGS?=-O2
+LIBS?=-lldap -llber
+LD?=gcc 
+LDFLAGS?=
+INSTALL_PREFIX?=
+PREFIXDIR?=/usr/local
+LDAPCONFDIR?=/etc/openldap
+MANDIR?=$(PREFIXDIR)/man
+SPECFILE?=ldap2dns.spec
+DISTRIBUTION?=redhat
 
 ifeq "$(DISTRIBUTION)" "redhat"
 RPMBASE=/usr/src/redhat
@@ -47,14 +47,15 @@ ldap2dns.o-dbg: ldap2dns.c
 	$(CC) $(DEBUG_CFLAGS) $(CFLAGS) -DVERSION='"$(VERSION)"' -c $< -o $@
 
 install: all
-	mkdir -p $(PREFIXDIR)/bin
-	mkdir -p $(LDAPCONFDIR)/schema
-	mkdir -p $(MANDIR)
-	install -s -m 755 ldap2dns $(PREFIXDIR)/bin/
-	ln -f $(PREFIXDIR)/bin/ldap2dns $(PREFIXDIR)/bin/ldap2dnsd
-	install -m 755 ldap2tinydns-conf $(PREFIXDIR)/bin/
-	install -m 644 ldap2dns.schema $(LDAPCONFDIR)/schema/
-	install -m 644 ldap2dns.1 $(MANDIR)
+	mkdir -p $(INSTALL_PREFIX)/$(PREFIXDIR)/bin
+	mkdir -p $(INSTALL_PREFIX)/$(LDAPCONFDIR)/schema
+	mkdir -p $(INSTALL_PREFIX)/$(MANDIR)/man1
+	install -s -m 755 ldap2dns $(INSTALL_PREFIX)/$(PREFIXDIR)/bin/
+	ln -f $(INSTALL_PREFIX)/$(PREFIXDIR)/bin/ldap2dns \
+		$(INSTALL_PREFIX)/$(PREFIXDIR)/bin/ldap2dnsd
+	install -m 755 ldap2tinydns-conf $(INSTALL_PREFIX)/$(PREFIXDIR)/bin/
+	install -m 644 ldap2dns.schema $(INSTALL_PREFIX)/$(LDAPCONFDIR)/schema/
+	install -m 644 ldap2dns.1 $(INSTALL_PREFIX)/$(MANDIR)/man1
 
 clean:
 	rm -f *.o *.o-dbg ldap2dns ldap2dns-dbg ldap2dnsd data* *.db core \
