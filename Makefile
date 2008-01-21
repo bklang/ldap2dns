@@ -1,11 +1,11 @@
 # $Id$ 
 VERSION=0.4.2
 RELEASE?=0
-CC?=gcc
+CC=gcc
 DEBUG_CFLAGS?=-g -ggdb
 CFLAGS?=-O2
 LIBS?=-lldap -llber
-LD?=gcc 
+LD=gcc 
 LDFLAGS?=
 INSTALL_PREFIX?=
 PREFIXDIR?=/usr/local
@@ -73,6 +73,7 @@ rpm: tar
 	    -e 's#%RELEASE%#$(RELEASE)#g' \
 		-e 's#%RPMGROUP%#$(RPMGROUP)#g' \
 		-e 's#%OPENLDAPPKG%#$(OPENLDAPPKG)#g' \
+		-e 's#%MANDIR%#$(MANDIR)#g' \
 	    < $(SPECFILE).in > $(SPECFILE)
 		
 	mv ../ldap2dns-$(VERSION).tar.gz $(RPMBASE)/SOURCES

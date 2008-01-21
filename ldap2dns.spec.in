@@ -67,6 +67,7 @@ make INSTALL_PREFIX=$RPM_BUILD_ROOT install
 %doc scripts/axfr2ldap.pl
 %doc scripts/data2ldif.pl
 %config /etc/openldap/schema/ldap2dns.schema
+%MANDIR%/man1/ldap2dns.1.gz
 
 %pre
 /usr/sbin/groupadd -g 161 -r ldap2dns >/dev/null 2>/dev/null || :
