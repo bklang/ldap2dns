@@ -6,9 +6,9 @@ $ sudo svccfg import ldap2dns.xml
 
 This imports the manifest but does not attempt to start the service.  It also
 seeds a number of important environment variables which will replace the
-command-line options to instruction ldap2dns on how to behave.
+command-line options to instruct ldap2dns how to behave.
 
-Note that there is currently (12/27/2006) a bug in svccfg which prevents the
+Note that there is currently (2006/12/27) a bug in svccfg which prevents the
 svccfg utility from setting environment variables whose values contain the
 equals ('=') sign.  Since LDAP DNs contain the equals sign, a workaround is
 required.  Unfortunately it has the side effect of erasing any existing
@@ -16,7 +16,7 @@ environment variables set for the service.  Thus, you must set the
 LDAP2DNS_BASEDN and LDAP2DNS_BINDDN before setting any other variables.  This
 will be true of any variable whose value contains the equals sign.
 
-The following variables are the minimal required to make ldap2dns function:
+The following variables are the minimum required to make ldap2dns function:
 LDAP2DNS_HOST (Can be ignored if the LDAP server is localhost)
 LDAP2DNS_BASEDN (Can be ignored if /etc/ldap.conf is properly configured)
 LDAP2DNS_BINDDN (Can be ignored if binding anonymously or ldap.conf is setup)
@@ -36,7 +36,7 @@ $ sudo svccfg -s ldap2dns:default 'setprop start/environment = astring: ("LDAP2D
 
 Note that is one continuous line.  The single quotes are required to ensure the
 shell does not attempt to interpret the parenthesis.  The parenthesis are
-requried to ensure that svccfg interprets the two quoted values as a single
+required to ensure that svccfg interprets the two quoted values as a single
 value.  The quotes are required to separate the environment variables in SMF.
 
 If you are running multiple instances of ldap2dns, make sure you replace
@@ -72,8 +72,4 @@ svc:/application/management/ldap2dns:default (LDAP to DNS manager)
 Impact: None.
 
 Looks good!  In case the state does not read "online" for any reason, check
-the log file
-
-/var/svc/log/application-management-ldap2dns:default.log
-
-for any errors ldap2dns reports to STDOUT.
+the log file at /var/svc/log/application-management-ldap2dns:default.log
