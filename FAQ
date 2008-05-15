@@ -1,6 +1,6 @@
 1) My build bails out with nearly three screens full of error messages!
-2006-10-04 bklang
 
+2006-10-04 bklang
 If the first two lines of that error output look like:
 
 ldap2dns.c:9:18: error: lber.h: No such file or directory
@@ -15,6 +15,7 @@ to those header files to the compiler.
 2) How do I use DNS TXT records?
 (Or: Why do I need that trailing '.'?)
 (Or: Why do my DNS TXT records get corrupted?)
+
 2006-10-19 bklang
 Due to an original design decision, ldap2dns uses the DNScname attribute to 
 store DNS TXT data.  This field is normally checked to see if it should be 
@@ -31,8 +32,8 @@ form of expansion.
 
 
 3) Where can I find a web interface?
-2005-06-06 bklang
 
+2005-06-06 bklang
 The official web interface of ldap2dns is "Beatnik."  Beatnik is a module for
 the Horde framework (http://www.horde.org).  Beatnik is actively developed and
 can be considered beta status.  Early adopters are encouraged to checkout

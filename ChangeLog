@@ -6,6 +6,8 @@ Version 0.4.2-beta (latest)
   them via configuration, environment, or cmdline args.
 * Allow all cmdline args to be set optionally using environment variables
 * Updated documentation and added plaintext version
+* Add output of TTL on individual records when using BIND outputs
+* Fix FQDN output of SRV records when using BIND outputs
 
 Version 0.4.1 - 2006/10/19
 * Updated scripts/data2ldif.pl to properly handle reverse domains

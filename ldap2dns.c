@@ -522,9 +522,9 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			}
 		}
 		if (namedzone) {
-			fprintf(namedzone, "%s.\tIN NS\t%s.\n", rr->dnsdomainname, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN NS\t%s.\n", rr->dnsdomainname, rr->ttl, rr->cname);
 			if (ipdx>=0)
-				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
+				fprintf(namedzone, "%s.\t%s\tIN A\t%s\n", rr->cname, rr->ttl, rr->ipaddr[ipdx]);
 		}
 	} else if (strcasecmp(rr->type, "MX")==0) {
 		if (tinyfile) {
@@ -546,9 +546,9 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			}
 		}
 		if (namedzone) {
-			fprintf(namedzone, "%s.\tIN MX\t%s %s.\n", rr->dnsdomainname, rr->preference, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN MX\t%s %s.\n", rr->dnsdomainname, rr->ttl, rr->preference, rr->cname);
 			if (ipdx>=0)
-				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->cname, rr->ipaddr[ipdx]);
+				fprintf(namedzone, "%s.\t%s\tIN A\t%s\n", rr->cname, rr->ttl, rr->ipaddr[ipdx]);
 		}
 	} else if ( strcasecmp(rr->type, "A")==0) {
 		if (tinyfile) {
@@ -559,9 +559,9 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		}
 		if (namedzone) {
 			if (ipdx<=0 && rr->cipaddr[0])
-				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->dnsdomainname, rr->cipaddr);
+				fprintf(namedzone, "%s.\t%s\tIN A\t%s\n", rr->dnsdomainname, rr->ttl, rr->cipaddr);
 			if (ipdx>=0)
-				fprintf(namedzone, "%s.\tIN A\t%s\n", rr->dnsdomainname, rr->ipaddr[ipdx]);
+				fprintf(namedzone, "%s.\t%s\tIN A\t%s\n", rr->dnsdomainname, rr->ttl, rr->ipaddr[ipdx]);
 		}
 	} else if (strcasecmp(rr->type, "PTR")==0) {
 		int ip[4] = {0, 0, 0, 0};
@@ -580,17 +580,17 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		if (tinyfile)
 			fprintf(tinyfile, "^%s:%s:%s:%s:%s\n", buf, rr->cname, rr->ttl, rr->timestamp, rr->location);
 		if (namedzone)
-			fprintf(namedzone, "%s.\tIN PTR\t%s.\n", buf, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN PTR\t%s.\n", buf, rr->ttl, rr->cname);
 	} else if (strcasecmp(rr->type, "CNAME")==0) {
 		if (tinyfile)
 			fprintf(tinyfile, "C%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp, rr->location);
 		if (namedzone)
-			fprintf(namedzone, "%s.\tIN CNAME\t%s.\n", rr->dnsdomainname, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN CNAME\t%s.\n", rr->dnsdomainname, rr->ttl, rr->cname);
 	} else if (strcasecmp(rr->type, "TXT")==0) {
 		if (tinyfile)
 			fprintf(tinyfile, "'%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp, rr->location);
 		if (namedzone)
-			fprintf(namedzone, "%s.\tIN TXT\t%s.\n", rr->dnsdomainname, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN TXT\t%s.\n", rr->dnsdomainname, rr->ttl, rr->cname);
 	} else if (strcasecmp(rr->type, "SRV")==0) {
 		if (tinyfile) {
 			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->dnssrvpriority >> 8, rr->dnssrvpriority & 0xff, rr->dnssrvweight >> 8, rr->dnssrvweight & 0xff, rr->dnssrvport >> 8, rr->dnssrvport & 0xff);
@@ -605,7 +605,7 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			fprintf(tinyfile, "\\000:%s:%s:%s\n", rr->ttl, rr->timestamp, rr->location);
 		}
 		if (namedzone) {
-			fprintf(namedzone, "%s\tIN SRV\t%d\t%d\t%d\t%s.\n", rr->dnsdomainname, rr->dnssrvpriority, rr->dnssrvweight, rr->dnssrvport, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN SRV\t%d\t%d\t%d\t%s.\n", rr->dnsdomainname, rr->ttl, rr->dnssrvpriority, rr->dnssrvweight, rr->dnssrvport, rr->cname);
 		}
 	}
 }
