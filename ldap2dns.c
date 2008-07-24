@@ -116,6 +116,7 @@ static struct
 	int usedhosts;
 	int useduris;
 	int is_daemon;
+	int foreground;
 	unsigned int update_iv;
 	unsigned int output;
 	int verbose;
@@ -162,7 +163,7 @@ static void set_datadir(void)
 static void print_usage(void)
 {
 	print_version();
-	printf("usage: ldap2dns[d] [-o data|db] [-h host] [-p port] [-H hostURI] \\\n");
+	printf("usage: ldap2dns[d] [-df] [-o data|db] [-h host] [-p port] [-H hostURI] \\\n");
 	printf("\t\t[-D binddn] [-w password] [-L[filename]] [-u numsecs] \\\n");
 	printf("\t\t[-b searchbase] [-v[v]] [-V] [-t timeout] [-M maxrecords]\n");
 	printf("\n");
@@ -182,6 +183,8 @@ static void print_usage(void)
 	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n\t\t", UPDATE_INTERVAL);
 	printf("\n");
 	printf("  -e \"exec-cmd\"\tCommand to execute after data is generated\n");
+	printf("  -d\t\tRun as a daemon (same as if invoked as ldap2dnsd)\n");
+	printf("  -f\t\tIf running as a daemon stay in the foreground (do not fork)\n");
 	printf("  -v\t\trun in verbose mode, repeat for more verbosity\n");
 	printf("  -V\t\tprint version and exit\n\n");
 	printf("\n");
@@ -374,6 +377,8 @@ static int parse_options()
 			{"version", 0, 0, 'V'},
 			{"timeout", 1, 0, 't'},
 			{"maxrecords", 1, 0, 'M'},
+			{"daemonize", 1, 0, 'd'},
+			{"foreground", 1, 0, 'f'},
 			{0, 0, 0, 0}
 		};
 
@@ -462,7 +467,7 @@ static int parse_options()
 			exit(1);
 		}
 	}
-	if (options.is_daemon==0 && options.update_iv>0)
+	if (options.is_daemon==1 && options.foreground==1)
 		options.is_daemon = 2; /* foreground daemon */
 }
 
@@ -1238,17 +1243,15 @@ int main(int argc, char** argv)
 			sleep(options.update_iv);
 			continue;
 		}
-		//if (options.is_daemon) {
-			calc_checksum(&old_numzones, &old_checksum);
-			if (old_numzones!=soa_numzones || old_checksum!=soa_checksum) {
-				if (options.verbose&1)
-					printf("DNSserial has changed in LDAP zone(s)\n");
-				soa_numzones = old_numzones;
-				soa_checksum = old_checksum;
-			} else {
-				goto skip;
-			}
-		//}
+		calc_checksum(&old_numzones, &old_checksum);
+		if (old_numzones!=soa_numzones || old_checksum!=soa_checksum) {
+			if (options.verbose&1)
+				printf("DNSserial has changed in LDAP zone(s)\n");
+			soa_numzones = old_numzones;
+			soa_checksum = old_checksum;
+		} else {
+			goto skip;
+		}
 		if (options.ldifname[0]) {
 			if (options.ldifname[0]=='-')
 				ldifout = stdout;
