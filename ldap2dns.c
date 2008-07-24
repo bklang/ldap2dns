@@ -589,7 +589,7 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			fprintf(namedzone, "%s.\t%s\tIN CNAME\t%s.\n", rr->dnsdomainname, rr->ttl, rr->cname);
 	} else if (strcasecmp(rr->type, "TXT")==0) {
 		if (tinyfile)
-			fprintf(tinyfile, "'%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->cname, rr->ttl, rr->timestamp, rr->location);
+			fprintf(tinyfile, "'%s:%s:%s:%s:%s\n", rr->dnsdomainname, rr->txt, rr->ttl, rr->timestamp, rr->location);
 		if (namedzone)
 			fprintf(namedzone, "%s.\t%s\tIN TXT\t%s.\n", rr->dnsdomainname, rr->ttl, rr->cname);
 	} else if (strcasecmp(rr->type, "SRV")==0) {
