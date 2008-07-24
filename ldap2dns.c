@@ -671,7 +671,7 @@ static void read_resourcerecords(char* dn, int znix)
 	if ( (ldaperr = ldap_search_ext_s(ldap_con, dn, LDAP_SCOPE_SUBTREE, "objectclass=DNSrrset", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
-		fprintf(stderr, "[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
+		fprintf(stderr, "\n[**] Warning: No DNS records found for domain %s.\n\n", zone.domainname);
 		return;
 	}
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
@@ -876,7 +876,7 @@ static void calc_checksum(int* num, int* sum)
 	if ( ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_ONELEVEL, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
-		fprintf(stderr, "[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
+		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
 		return;
 	}
 		
@@ -913,7 +913,7 @@ static void read_dnszones(void)
 	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
-		fprintf(stderr, "[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
+		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
 		return;
 	}
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
@@ -1220,13 +1220,13 @@ int main(int argc, char** argv)
 
 	/* Initialization complete.  If we're in daemon mode, fork and continue */
 	if (options.is_daemon) {
+		fprintf(stdout, "ldap2dns v%s starting up\n", VERSION);
 		if (options.is_daemon==1 && fork()) {
 			if (options.verbose)
 				fprintf(stdout, "Sending process to background.");
 			exit(0);
 		}
 
-		fprintf(stdout, "ldap2dns v%s starting up", VERSION);
 		/* lowest priority */
 		nice(19);
 	}
