@@ -215,7 +215,11 @@ sub read_zone
 			$attr{'DNSttl'} = $2;
 			$attr{'DNSclass'} = $3;
 			$attr{'DNStype'} = $4;
-			$attr{'DNScname'} = $5;
+			if ($rr->type eq "CNAME") {
+				$attr{'DNScname'} = $5;
+			} elsif ($rr->type eq "TXT") {
+				$attr{'DNStxt'} = $5;
+			}
 			add_attrs(\%attr, $zonename);
 		} elsif ($rr->type eq "PTR") {
 			die "Invalid PTR record for ", $rr->name, "  " unless ($rr->string =~ /^([0-9.]+\.in-addr\.arpa)\.\s+(\d+)\s+(\w+)\s+(\w+)\s+([0-9a-zA-Z_.+-]+)/);

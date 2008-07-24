@@ -98,9 +98,10 @@ struct resourcerecord
 	char aliasedobjectname[256];
 	char macaddress[32];
 #endif
-	int dnssrvpriority;
-	int dnssrvweight;
-	int dnssrvport;
+	int srvpriority;
+	int srvweight;
+	int srvport;
+	char txt[256];
 };
 
 
@@ -593,7 +594,7 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			fprintf(namedzone, "%s.\t%s\tIN TXT\t%s.\n", rr->dnsdomainname, rr->ttl, rr->cname);
 	} else if (strcasecmp(rr->type, "SRV")==0) {
 		if (tinyfile) {
-			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->dnssrvpriority >> 8, rr->dnssrvpriority & 0xff, rr->dnssrvweight >> 8, rr->dnssrvweight & 0xff, rr->dnssrvport >> 8, rr->dnssrvport & 0xff);
+			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->srvpriority >> 8, rr->srvpriority & 0xff, rr->srvweight >> 8, rr->srvweight & 0xff, rr->srvport >> 8, rr->srvport & 0xff);
 			tmp = strdup(rr->cname);
 			while (p = strchr(tmp, '.')) {
 				*p = '\0';
@@ -605,7 +606,7 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			fprintf(tinyfile, "\\000:%s:%s:%s\n", rr->ttl, rr->timestamp, rr->location);
 		}
 		if (namedzone) {
-			fprintf(namedzone, "%s.\t%s\tIN SRV\t%d\t%d\t%d\t%s.\n", rr->dnsdomainname, rr->ttl, rr->dnssrvpriority, rr->dnssrvweight, rr->dnssrvport, rr->cname);
+			fprintf(namedzone, "%s.\t%s\tIN SRV\t%d\t%d\t%d\t%s.\n", rr->dnsdomainname, rr->ttl, rr->srvpriority, rr->srvweight, rr->srvport, rr->cname);
 		}
 	}
 }
@@ -686,9 +687,9 @@ static void read_resourcerecords(char* dn, int znix)
 		rr.aliasedobjectname[0] = '\0';
 		rr.rr[0] = '\0';
 #endif
-                rr.dnssrvpriority = 0;
-                rr.dnssrvweight = 0;
-                rr.dnssrvport = 0;
+                rr.srvpriority = 0;
+                rr.srvweight = 0;
+                rr.srvport = 0;
 		for (attr = ldap_first_attribute(ldap_con, m, &ber); attr; attr = ldap_next_attribute(ldap_con, m, ber)) {
 			int len = strlen(attr);
 			struct berval** bvals;
@@ -740,6 +741,10 @@ static void read_resourcerecords(char* dn, int znix)
 							rr.cname[0] = '\0';
 						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
+					} else if (strcasecmp(attr, "DNStxt")==0) {
+						strncpy(rr.txt, bvals[0]->bv_val, sizeof(rr.txt) - 1);
+						if (options.ldifname[0])
+							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
 					} else if (strcasecmp(attr, "DNSttl")==0) {
 						if (sscanf(bvals[0]->bv_val, "%12s", rr.ttl)!=1)
 							rr.ttl[0] = '\0';
@@ -775,20 +780,20 @@ static void read_resourcerecords(char* dn, int znix)
 					}
 #endif
 					else if (strcasecmp(attr, "DNSsrvpriority")==0) {
-						if (!(rr.dnssrvpriority = atoi(bvals[0]->bv_val)))
-                                                        rr.dnssrvpriority = 0;
+						if (!(rr.srvpriority = atoi(bvals[0]->bv_val)))
+                                                        rr.srvpriority = 0;
                                                 else if (options.ldifname[0])
-                                                        fprintf(ldifout, "%s: %d\n", attr, rr.dnssrvpriority);
+                                                        fprintf(ldifout, "%s: %d\n", attr, rr.srvpriority);
 					} else if (strcasecmp(attr, "DNSsrvweight")==0) {
-						if (!(rr.dnssrvweight = atoi(bvals[0]->bv_val)))
-                                                        rr.dnssrvweight = 0;
+						if (!(rr.srvweight = atoi(bvals[0]->bv_val)))
+                                                        rr.srvweight = 0;
                                                 else if (options.ldifname[0])
-                                                        fprintf(ldifout, "%s: %d\n", attr, rr.dnssrvweight);
+                                                        fprintf(ldifout, "%s: %d\n", attr, rr.srvweight);
                                         } else if (strcasecmp(attr, "DNSsrvport")==0) {
-						if (!(rr.dnssrvport = atoi(bvals[0]->bv_val)))
-                                                        rr.dnssrvport = 0;
+						if (!(rr.srvport = atoi(bvals[0]->bv_val)))
+                                                        rr.srvport = 0;
                                                 else if (options.ldifname[0])
-                                                        fprintf(ldifout, "%s: %d\n", attr, rr.dnssrvport);
+                                                        fprintf(ldifout, "%s: %d\n", attr, rr.srvport);
                                         }
 				}
 				ldap_value_free_len(bvals);

@@ -338,12 +338,7 @@ LINE: while(<DATA>) {
         };
 
         /^'/ && do {
-            # Currently unsupported
-            print STDERR "Ignoring unsupported TXT record: $_\n";
-            $errorrecs++;
-            print $rejfh "$_\n";
-            next LINE;
-            # Found an MX
+            # Found a TXT record
             my ($fqdn, $s, $ttl, $timestamp, $loc) = split /:/;
             $fqdn =~ s/^'//;
             if (!defined($ttl)) { $ttl = ""; }
@@ -359,8 +354,7 @@ LINE: while(<DATA>) {
             print $outfh "cn: $id\n";
             print $outfh "dnstype: txt\n";
             print $outfh "dnsdomainname: $fqdn.\n";
-            # FIXME Add TXT support to ldap2dns
-            # print $outfh "dnstxt: $s\n";
+            print $outfh "dnstxt: $s\n";
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
             if ($loc) { print $outfh "dnsloc: $loc\n"; }
