@@ -1,5 +1,5 @@
 # $Id$
-Version 0.4.2-beta (latest)
+Version 0.4.2 (latest)
 * Add SMF manifest
 * Add manpage
 * Ensure all options get initialized to defaults before any attempts at setting
