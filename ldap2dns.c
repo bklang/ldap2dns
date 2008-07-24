@@ -180,13 +180,12 @@ static void print_usage(void)
 	printf("  -h host\tHostname of LDAP server, defaults to localhost\n");
 	printf("  -p port\tPort number to connect to LDAP server, defaults to %d\n", LDAP_PORT);
 	printf("  -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
-	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n\t\t", UPDATE_INTERVAL);
-	printf("\n");
+	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n", UPDATE_INTERVAL);
 	printf("  -e \"exec-cmd\"\tCommand to execute after data is generated\n");
 	printf("  -d\t\tRun as a daemon (same as if invoked as ldap2dnsd)\n");
 	printf("  -f\t\tIf running as a daemon stay in the foreground (do not fork)\n");
 	printf("  -v\t\trun in verbose mode, repeat for more verbosity\n");
-	printf("  -V\t\tprint version and exit\n\n");
+	printf("  -V\t\tprint version and exit\n");
 	printf("\n");
 	printf("Note: Zone data are only updated after zone serials increment.\n");
 }
@@ -460,6 +459,12 @@ static int parse_options()
 		case 'M':
 			if (sscanf(optarg, "%d", &options.reclimit)!=1)
 				options.reclimit = DEF_RECLIMIT;
+			break;
+		case 'd':
+			options.is_daemon = 1;
+			break;
+		case 'f':
+			options.foreground = 1;
 			break;
 		case '?':
 		default:
