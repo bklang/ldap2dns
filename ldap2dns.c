@@ -377,12 +377,12 @@ static int parse_options()
 			{"version", 0, 0, 'V'},
 			{"timeout", 1, 0, 't'},
 			{"maxrecords", 1, 0, 'M'},
-			{"daemonize", 1, 0, 'd'},
-			{"foreground", 1, 0, 'f'},
+			{"daemonize", 0, 0, 'd'},
+			{"foreground", 0, 0, 'f'},
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(main_argc, main_argv, "b:D:e:h:H:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
+		c = getopt_long(main_argc, main_argv, "b:dD:e:fh:H:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
 
 		if (c == -1)
 			break;
