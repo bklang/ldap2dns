@@ -3,110 +3,110 @@
 # $Id$
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.1
-        NAME 'dnszonename'
-        SUP name )
+	NAME 'dnszonename'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.2
-        NAME 'dnsserial'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnsserial'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.3
-        NAME 'dnsrefresh'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnsrefresh'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.4
-        NAME 'dnsretry'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnsretry'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.5
-        NAME 'dnsexpire'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnsexpire'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.6
-        NAME 'dnsminimum'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnsminimum'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.7
-        NAME 'dnsadminmailbox'
-        SUP name )
+	NAME 'dnsadminmailbox'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.8
-        NAME 'dnszonemaster'
-        SUP name )
+	NAME 'dnszonemaster'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.9
-        NAME 'dnstype'
-        SUP name )
+	NAME 'dnstype'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.10
-        NAME 'dnsclass'
-        SUP name )
+	NAME 'dnsclass'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.11
-        NAME 'dnsdomainname'
-        SUP name )
+	NAME 'dnsdomainname'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.12
-        NAME 'dnsipaddr'
-        EQUALITY caseIgnoreIA5Match
-        SUBSTR caseIgnoreIA5SubstringsMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{16} )
-        SINGLE-VALUE )
+	NAME 'dnsipaddr'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{16} )
+	SINGLE-VALUE )
 
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.13
-        NAME 'dnscipaddr'
-        EQUALITY caseIgnoreIA5Match
-        SUBSTR caseIgnoreIA5SubstringsMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{16} )
+	NAME 'dnscipaddr'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{16} )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.14
-        NAME 'dnscname'
-        SUP name )
+	NAME 'dnscname'
+	SUP name )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.15
-        NAME 'dnspreference'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnspreference'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.16
-        NAME 'dnsrr'
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-        SINGLE-VALUE )
+	NAME 'dnsrr'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.17
-        NAME 'dnsttl'
-        EQUALITY integerMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-        SINGLE-VALUE )
+	NAME 'dnsttl'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.18
-        NAME 'dnstimestamp'
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-        SINGLE-VALUE )
+	NAME 'dnstimestamp'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.21
-        NAME 'NIChandle'
-        EQUALITY caseIgnoreMatch
-        SUBSTR caseIgnoreSubstringsMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
+	NAME 'NIChandle'
+	EQUALITY caseIgnoreMatch
+	SUBSTR caseIgnoreSubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.22
-        NAME 'TIShandle'
-        EQUALITY caseIgnoreMatch
-        SUBSTR caseIgnoreSubstringsMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
+	NAME 'TIShandle'
+	EQUALITY caseIgnoreMatch
+	SUBSTR caseIgnoreSubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.23
 	NAME 'dnslocation'
@@ -115,40 +115,38 @@ attributetype ( 1.3.6.1.4.1.7222.1.4.23
 	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.24
-    NAME 'dnssrvpriority'
-    EQUALITY integerMatch
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-    SINGLE-VALUE )
+	NAME 'dnssrvpriority'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.25
-    NAME 'dnssrvweight'
-    EQUALITY integerMatch
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-    SINGLE-VALUE )
+	NAME 'dnssrvweight'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.26
-    NAME 'dnssrvport'
-    EQUALITY integerMatch
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
-    SINGLE-VALUE )
+	NAME 'dnssrvport'
+	EQUALITY integerMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+	SINGLE-VALUE )
 
 objectclass ( 1.3.6.1.4.1.7222.1.4.19
-        NAME 'dnszone'
-        MUST ( objectclass $ cn )
-        MAY ( dnszonename $ dnsserial $ dnsrefresh $ dnsretry $ dnsexpire
-            $ dnsminimum $ dnsadminmailbox $ dnszonemaster $ dnstype $ dnsclass
-            $ dnsttl $ dnstimestamp $ owner $ NIChandle $ TIShandle
-			$ dnslocation ) )
+	NAME 'dnszone'
+	MUST ( objectclass $ cn )
+	MAY ( dnszonename $ dnsserial $ dnsrefresh $ dnsretry $ dnsexpire
+		$ dnsminimum $ dnsadminmailbox $ dnszonemaster $ dnstype
+		$ dnsclass $ dnsttl $ dnstimestamp $ owner $ NIChandle
+		$ TIShandle $ dnslocation ) )
 
 objectclass ( 1.3.6.1.4.1.7222.1.4.20
-        NAME 'dnsrrset'
-        SUP dnszone
-        MUST ( objectclass $ cn )
-        MAY ( dnsdomainname $ dnsrr $ dnsclass $ dnstype $ dnsipaddr $ dnscipaddr
-            $ dnscname $ dnspreference $ dnsttl $ dnstimestamp $ owner 
-            $ dnssrvpriority $ dnssrvweight $ dnssrvport ) )
-
-
+	NAME 'dnsrrset'
+	SUP dnszone
+	MUST ( objectclass $ cn )
+	MAY ( dnsdomainname $ dnsrr $ dnsclass $ dnstype $ dnsipaddr
+		$ dnscipaddr $ dnscname $ dnspreference $ dnsttl $ dnstimestamp
+		$ owner $ dnssrvpriority $ dnssrvweight $ dnssrvport ) )
 
 objectclass ( 1.3.6.1.4.1.7222.1.4.24
 	NAME 'dnsloccodes'
