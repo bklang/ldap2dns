@@ -1,6 +1,5 @@
 1) My build bails out with nearly three screens full of error messages!
 
-2006-10-04 bklang
 If the first two lines of that error output look like:
 
 ldap2dns.c:9:18: error: lber.h: No such file or directory
@@ -12,78 +11,14 @@ installed.  If you're running on Solaris or have installed OpenLDAP into a
 non-standard location then you'll need to modify the Makefile to pass the path
 to those header files to the compiler.
 
-2) How do I use DNS TXT records?
-(Or: Why do I need that trailing '.'?)
-(Or: Why do my DNS TXT records get corrupted?)
+2) Where can I find a web interface?
 
-2006-10-19 bklang
-Due to an original design decision, ldap2dns uses the DNScname attribute to 
-store DNS TXT data.  This field is normally checked to see if it should be 
-expanded to include a trailing domain name (that is, any string that does not 
-end with a '.').  The "best" way to create  DNS txt record for now is to create
-the TXT entry as you normally would, then simply append a '.'.  The '.' will not
-be included in the resulting record and will prevent expansion or other 
-modification of the record.
-
-This limitation is scheduled to be corrected around ldap2dns version 0.5 as it
-breaks compatibility with existing installs.  Tentatively, this will see the
-introduction of a new attribute dedicated to TXT records that will bypass any
-form of expansion.
-
-
-3) Where can I find a web interface?
-
-2005-06-06 bklang
 The official web interface of ldap2dns is "Beatnik."  Beatnik is a module for
 the Horde framework (http://www.horde.org).  Beatnik is actively developed and
 can be considered beta status.  Early adopters are encouraged to checkout
-the code from Horde CVS.  The author uses Beatnik in production today.
+the code from Horde Git repository.
+The author uses Beatnik in production today.
 
-See http://projects.alkaloid.net and http://www.horde.org for more information.
-
-
-4) What happened to the webadmin directory?
-
-2005-12-22 bklang
-** See security note at the end of this section regarding the old webadmin **
-
-I have deprecated that code in favor of another project I am working on.  It
-is called Beatnik and is a Horde framework module.  The status of the webadmin
-code was unclear and I was not willing to support it so I deprecated it.  I 
-left it as part of the tarball release and in version control in case others
-out there felt differently and/or it ever needed to be modified or even revived.
-
-As far as I'm concerned you are welcome to use it but consequently are on your
-own.  You might also contact the author, Jacob Rief (jacob.rief@tiscover.com)
-for more information but he is no longer interested in maintaing this work
-so do not depend on him.
-
-During a routine code audit on the ldap2dns sources a number of potential LDAP
-injection vulnerabilities were discovered.  Since this code is deprecated no
-attempt to correct these flaws has been made. 
-
-
-IF YOU CHOOSE TO RUN THE DEPRECATED WEBADMIN SOFTWARE:  Please take all
-necessary steps to secure your environment.  The author of this package takes no
-responsibility for any problems related to the flawed webadmin code.
-
-Thanks to Erik Cabetas for bringing these issues to my attention.
-
-
-5) Why have you deprecated all that code?
-
-2005-12-07 bklang
-This is partially answered above, but to fully answer the question it's not
-any comment or criticism of the original author.  Really it is just code that
-appears to me to be somewhat extraneous to what I consider to be the core
-functionality of ldap2dns.  That combined with my desire to focus on the core
-functionality and not maintain this other work leads me to note the status of
-that code to others who may use this package.  The code may or may not work;
-you are entirely on your own.  If demand is sufficient some parts may come back
-into the main tarball.  However for now I leave it there in case anyone out
-there wants it.  It is unmaintained (at least by me) and should not be
-considered stable or even working unless you audit it yourself.
-You have been warned. Caveat emptor.
-
+See http://www.horde.org for more information.
 
 # $Id$
