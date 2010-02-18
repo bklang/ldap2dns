@@ -1,7 +1,7 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
  * $Id$
- * Copyright 2005-2008 by Ben Klang <ben@alkaloid.net>
+ * Copyright 2005-2010 by Alkaloid Networks, LLC
  * Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2. See http://www.fsf.org for details
  */
@@ -43,7 +43,7 @@ static void print_version(void)
 	printf("\n");
 	printf("ldap2dns version %s\n", VERSION);
 	printf("\n");
-	printf("  Copyright 2005-2008 by Ben Klang <ben@alkaloid.net>\n");
+	printf("  Copyright 2005-2010 by Alkaloid Networks, LLC\n");
 	printf("  Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>\n");
 	printf("\n");
 	printf("  Released under the terms of the GPL.\n");

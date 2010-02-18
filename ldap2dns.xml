@@ -2,9 +2,11 @@
 <!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
 <!--
 	Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
+	Copyright 2006 Alkaloid Networks, LLC
 	Use is subject to license terms.
 
 	ident	"@(#)server.xml	1.3	04/12/03 SMI"
+	$Id$
 -->
 <service_bundle type='manifest' name='ALKAldap2dns:ldap2dns'>
 
