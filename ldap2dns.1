@@ -19,7 +19,7 @@
 ldap2dns \- LDAP based DNS management system
 .SH SYNOPSIS
 .B ldap2dns[d]
-.RI [ "-o data|db" "] [" "-h host" "] [" "-p port" "] [" "-H hostURI" "] [" "-D binddn" "] [" "-w password" "] [" "-L[filename]" "] [" "-u numsecs" "] [" "-b searchbase" "] [" "-v[v]]" "] [" "-V" "] [" "-t timeout" "] [" "-M maxrecords" ]
+.RI [ "-o tinydns|bind" "] [" "-h host" "] [" "-p port" "] [" "-H hostURI" "] [" "-D binddn" "] [" "-w password" "] [" "-L[filename]" "] [" "-u numsecs" "] [" "-b searchbase" "] [" "-v[v]]" "] [" "-V" "] [" "-t timeout" "] [" "-M maxrecords" ]
 .br
 .SH DESCRIPTION
 .B ldap2dns
@@ -46,11 +46,11 @@ A summary of each command line option is shown below along with its environment
 variable equivalent.  Each option may be set in either location, with the
 command line taking precedence over the environment variables.
 .TP
-.B \-o [data|db] ($LDAP2DNS_OUTPUT)
+.B \-o [tinydns|bind] ($LDAP2DNS_OUTPUT)
 Generate a "data" file to be processed by
 .B tinydns-data
 or a set of zone "db"s (one per zone) to be used by
-.B named
+.B BIND
 .TP
 .B \-h host ($LDAP2DNS_HOST)
 Hostname of LDAP server, defaults to localhost.
