@@ -648,7 +648,11 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 	} else if (strcasecmp(rr->type, "AAAA")==0) {
 		/* Even though we don't use the result of inet_pton() for BIND,
 		 * we can use it to validate the address. */
-		res = inet_pton(AF_INET6, rr->ipaddr[0], in6addr);
+		if (strlen(rr->cipaddr) > 0) {
+			res = inet_pton(AF_INET6, rr->cipaddr, in6addr);
+		} else {
+			res = inet_pton(AF_INET6, rr->ipaddr[0], in6addr);
+		}
 		if (res == 1) {
 			/* Valid IPv6 address found. */
 			if (tinyfile) {
@@ -780,20 +784,24 @@ static void read_resourcerecords(char* dn, int znix)
 						unsigned char in6addr[sizeof(struct in6_addr)];
 						for (ipaddresses = 0; bvals[ipaddresses] && ipaddresses<256; ipaddresses++) {
 							rr.ipaddr[ipaddresses][0] = '\0';
-							if (sscanf(bvals[ipaddresses]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
-								snprintf(rr.ipaddr[ipaddresses], sizeof(rr.ipaddr[ipaddresses]), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-								if (options.ldifname[0])
-									fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
-							}
 							if (inet_pton(AF_INET6, bvals[ipaddresses]->bv_val, in6addr)==1) {
 								snprintf(rr.ipaddr[ipaddresses], sizeof(rr.ipaddr[ipaddresses]), "%s", bvals[ipaddresses]->bv_val);
+								if (options.ldifname[0])
+									fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
+							} else if (sscanf(bvals[ipaddresses]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
+								snprintf(rr.ipaddr[ipaddresses], sizeof(rr.ipaddr[ipaddresses]), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 								if (options.ldifname[0])
 									fprintf(ldifout, "%s: %s\n", attr, rr.ipaddr[ipaddresses]);
 							}
 						}
 					} else if (strcasecmp(attr, "DNScipaddr")==0) {
 						int ip[4];
-						if (sscanf(bvals[0]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
+						unsigned char in6addr[sizeof(struct in6_addr)];
+						if (inet_pton(AF_INET6, bvals[0]->bv_val, in6addr)==1) {
+							snprintf(rr.cipaddr, sizeof(rr.cipaddr), "%s", bvals[0]->bv_val);
+							if (options.ldifname[0])
+								fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
+						} else if (sscanf(bvals[0]->bv_val, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])==4) {
 							snprintf(rr.cipaddr, sizeof(rr.cipaddr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 							if (options.ldifname[0])
 								fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
