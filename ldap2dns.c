@@ -164,7 +164,7 @@ static void set_datadir(void)
 static void print_usage(void)
 {
 	print_version();
-	printf("usage: ldap2dns[d] [-df] [-o data|db] [-h host] [-p port] [-H hostURI] \\\n");
+	printf("usage: ldap2dns[d] [-df] [-o tinydns|bind] [-h host] [-p port] [-H hostURI] \\\n");
 	printf("\t\t[-D binddn] [-w password] [-L[filename]] [-u numsecs] \\\n");
 	printf("\t\t[-b searchbase] [-v[v]] [-V] [-t timeout] [-M maxrecords]\n");
 	printf("\n");
@@ -175,8 +175,8 @@ static void print_usage(void)
 	printf("  -D binddn\tUse the distinguished name binddn to bind to the LDAP directory\n");
 	printf("  -w bindpasswd\tUse bindpasswd as the password for simple authentication\n");
 	printf("  -b\t\tSearch base to use instead of default\n");
-	printf("  -o data\tGenerate a tinydns compatible \"data\" file\n");
-	printf("  -o db\t\tGenerate a BIND compatible zone files\n");
+	printf("  -o tinydns\tGenerate a tinydns compatible \"data\" file\n");
+	printf("  -o bind\t\tGenerate a BIND compatible zone files\n");
 	printf("  -L [filename]\tPrint output in LDIF format for reimport\n");
 	printf("  -h host\tHostname of LDAP server, defaults to localhost\n");
 	printf("  -p port\tPort number to connect to LDAP server, defaults to %d\n", LDAP_PORT);
@@ -344,10 +344,16 @@ static int parse_options()
 		options.reclimit = DEF_RECLIMIT;
 	ev = getenv("LDAP2DNS_OUTPUT");
 	if (ev) {
-		if (strcmp(ev, "data")==0)
+		if (strcmp(ev, "bind")==0)
+			options.output = OUTPUT_DB;
+		else if (strcmp(ev, "tinydns")==0)
 			options.output = OUTPUT_DATA;
 		else if (strcmp(ev, "db")==0)
+			// Backward compatibility
 			options.output = OUTPUT_DB;
+		else if (strcmp(ev, "data")==0)
+			// Backward compatibility
+			options.output = OUTPUT_DATA;
 	}
 	ev = getenv("LDAP2DNS_VERBOSE");
 	if (ev && sscanf(ev, "%hd", (short *)&options.verbose) != 1)
@@ -428,9 +434,15 @@ static int parse_options()
 			break;
 		case 'o':
 			options.output = 0;
-			if (strcmp(optarg, "data")==0)
+			if (strcmp(optarg, "tinydns")==0)
+				options.output = OUTPUT_DATA;
+			else if (strcmp(optarg, "bind")==0)
+				options.output = OUTPUT_DB;
+			else if (strcmp(optarg, "data")==0)
+				// Backward compatibility
 				options.output = OUTPUT_DATA;
 			else if (strcmp(optarg, "db")==0)
+				// Backward compatibility
 				options.output = OUTPUT_DB;
 			break;
 		case 'p':
@@ -1246,7 +1258,7 @@ int main(int argc, char** argv)
 	parse_options();
 
 	if (!options.output) {
-		fprintf(stderr, "[!!]\tMust select an output type (\"db\" or \"data\")\n");
+		fprintf(stderr, "[!!]\tMust select an output type (\"bind\" or \"tinydns\")\n");
 		fprintf(stderr, "Use --help to see usage information\n");
 		exit(1);
 	}

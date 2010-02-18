@@ -6,14 +6,6 @@
 
 * Print warning if running as root (2006/06/08 bklang)
 
---- For ldap2dns 1.0beta --- WILL BREAK COMPATIBILITY ---
-* Clean up DNS TXT support: text current requires a trailing '.', probably
-  should introduce a new attribute for DNS TXT so it is unambiguous
-  (2005/12/23 bklang)
-
-* Change output formats of "data" and "db" to "tinydns" and "bind"
-  (2006/06/08 bklang)
-
 --- Old TODOs from Jacob ---
 Version ?.?.?
 + Make ldap2dns behave like a secondary nameserver by storing
