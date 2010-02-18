@@ -1,10 +1,11 @@
 # $Id$
 Version 0.5.0-beta (latest)
 * BACKWARD COMPATIBILITY BREAK: DNS TXT records now store their data in the new
-  DNSTXT attribute instead of the old DNScname attribute.  You must manually
+  DNStxt attribute instead of the old DNScname attribute.  You must manually
   update any DNS TXT records for them to continue working.
 * Fix handling of background daemon mode
 * Add option to run in daemon mode without forking, staying in the foreground
+* Add support for IPv6 AAAA records
 
 Version 0.4.2
 * Add SMF manifest
