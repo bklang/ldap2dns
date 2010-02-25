@@ -25,6 +25,7 @@
 #define MAXHOSTS 10
 #define DEF_SEARCHTIMEOUT 40
 #define DEF_RECLIMIT LDAP_NO_LIMIT
+#define MAX_DOMAIN_LEN 256
 
 static char tinydns_textfile[256];
 static char tinydns_texttemp[256];
@@ -84,7 +85,7 @@ static struct
 struct resourcerecord
 {
 	char cn[64];
-	char dnsdomainname[64];
+	char dnsdomainname[MAX_DOMAIN_LEN];
 	char class[16];
 	char type[16];
 	char ipaddr[256][80];
@@ -492,9 +493,12 @@ static int parse_options()
 }
 
 
-static int expand_domainname(char target[64], const char* source, int slen)
+static int expand_domainname(char target[MAX_DOMAIN_LEN], const char* source, int slen)
 {
-	if (slen>64)
+	int tlen;
+	tlen = strlen(zone.domainname);
+
+	if ((slen + tlen) > MAX_DOMAIN_LEN)
 		return 0;
 	if (source[slen-1]=='.') {
 		strncpy(target, source, slen-1);
