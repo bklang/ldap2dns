@@ -6,6 +6,7 @@ Version 0.5.0-beta (latest)
 * Fix handling of background daemon mode
 * Add option to run in daemon mode without forking, staying in the foreground
 * Add support for IPv6 AAAA records
+* Fix TXT records under Bind (thanks Alex Sanderson for the patch)
 
 Version 0.4.2
 * Add SMF manifest
