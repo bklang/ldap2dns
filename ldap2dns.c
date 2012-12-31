@@ -106,7 +106,7 @@ struct resourcerecord
 	char type[16];
 	char ipaddr[256][80];
 	char cipaddr[80];
-	char cname[1024]; ## large enough to store DKIM entries, which by rfc5322 have an upper-limit of 998chars
+	char cname[1024]; /* large enough to store DKIM entries, which by rfc5322 have an upper-limit of 998chars */
 	char ttl[12];
 	char timestamp[20];
 	char preference[12];
