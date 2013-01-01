@@ -726,7 +726,7 @@ static void parse_rr(struct resourcerecord* rr)
 		int len = strlen(word1);
 		expand_reverse(rr->cname, word1);
 	} else if (strcasecmp(rr->type, "TXT")==0) {
-		strncpy(rr->cname, word1, 64);
+		strncpy(rr->cname, word1, sizeof(rr->cname));
 	}
 }
 #endif
