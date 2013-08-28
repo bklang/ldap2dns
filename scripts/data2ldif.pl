@@ -353,7 +353,7 @@ LINE: while(<DATA>) {
             print $outfh "cn: $id\n";
             print $outfh "dnstype: txt\n";
             print $outfh "dnsdomainname: $fqdn.\n";
-            print $outfh "dnscname: $s.\n";
+            print $outfh "dnstxt: $s\n";
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
             if ($loc) { print $outfh "dnsloc: $loc\n"; }
