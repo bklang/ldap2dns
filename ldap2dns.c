@@ -1,6 +1,6 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id$
+ * $Id: ldap2dns.c 447 2008-05-15 01:02:59Z bklang $
  * Copyright 2005-2010 by Alkaloid Networks, LLC
  * Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2. See http://www.fsf.org for details
@@ -33,6 +33,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <pwd.h>
+#include <ctype.h>
 
 #define UPDATE_INTERVAL 59
 #define LDAP_CONF "/etc/ldap.conf"
@@ -143,6 +145,7 @@ static struct
 	int use_tls[MAXHOSTS];
 	struct timeval searchtimeout;
 	int reclimit;
+	int uid;
 } options;
 
 
@@ -198,12 +201,14 @@ static void print_usage(void)
 	printf("  -h host\tHostname of LDAP server, defaults to localhost\n");
 	printf("  -p port\tPort number to connect to LDAP server, defaults to %d\n", LDAP_PORT);
 	printf("  -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
-	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n", UPDATE_INTERVAL);
+	printf("  -i user\tRun as user\n");
+	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n\t\t", UPDATE_INTERVAL);
+	printf("\n");
 	printf("  -e \"exec-cmd\"\tCommand to execute after data is generated\n");
 	printf("  -d\t\tRun as a daemon (same as if invoked as ldap2dnsd)\n");
 	printf("  -f\t\tIf running as a daemon stay in the foreground (do not fork)\n");
 	printf("  -v\t\trun in verbose mode, repeat for more verbosity\n");
-	printf("  -V\t\tprint version and exit\n");
+	printf("  -V\t\tprint version and exit\n\n");
 	printf("\n");
 	printf("Note: Zone data are only updated after zone serials increment.\n");
 }
@@ -253,14 +258,14 @@ static int parse_options()
 	extern int optind, opterr, optopt;
 	char buf[256], value[128];
 	int len;
-	short slen;
 	int c;
 	int digit_optind = 0;
 	FILE* ldap_conf,*fp;
 	char* ev;
 	int tmp;
-	short stmp;
 	int i;
+	long temptime;		// scratch long integer to assign to time_t values
+	struct passwd *p;
 
 	/* Initialize the options to their defaults */
 	len = strlen(main_argv[0]);
@@ -282,6 +287,7 @@ static int parse_options()
 	options.verbose = 0;
 	options.ldifname[0] = '\0';
 	strcpy(options.exec_command, "");
+	options.uid = 0;
 
 	/* Attempt to parse the ldap.conf for system-wide valuse */
 	if (ldap_conf = fopen(LDAP_CONF, "r")) {
@@ -295,7 +301,7 @@ static int parse_options()
 				parse_hosts(value);
 			if (sscanf(buf, "HOST %512[A-Za-z0-9 .:_+-]", value)==1)
 				parse_hosts(value);
-			if (sscanf(buf, "PORT %hd", &slen)==1)
+			if (sscanf(buf, "PORT %d", &len)==1)
 				for (i = 0; i<MAXHOSTS; i++)
 					options.port[i] = len;
 			if (sscanf(buf, "BINDDN %128s", value)==1) {
@@ -344,7 +350,7 @@ static int parse_options()
 		options.hostname[options.usedhosts][ sizeof(options.hostname[options.usedhosts]) -1 ] = '\0';
 		options.usedhosts++;
 		ev = getenv("LDAP2DNS_PORT");
-		if (ev && sscanf(ev, "%hd", &stmp) != 1)
+		if (ev && sscanf(ev, "%d", &tmp) != 1)
 			for (i = 0; i<MAXHOSTS; i++)
 				options.port[i] = tmp;
 	}
@@ -354,8 +360,10 @@ static int parse_options()
                                 parse_hosts(value);
 	}
 	ev = getenv("LDAP2DNS_TIMEOUT");
-	if (ev && sscanf(ev, "%hd", (short *)&options.searchtimeout.tv_sec) != 1)
+	if (ev && sscanf(ev, "%ld", &temptime) != 1)
 		options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
+	else
+		options.searchtimeout.tv_sec = temptime;
 	ev = getenv("LDAP2DNS_RECLIMIT");
 	if (ev && sscanf(ev, "%d", &options.reclimit) != 1)
 		options.reclimit = DEF_RECLIMIT;
@@ -373,7 +381,7 @@ static int parse_options()
 			options.output = OUTPUT_DATA;
 	}
 	ev = getenv("LDAP2DNS_VERBOSE");
-	if (ev && sscanf(ev, "%hd", (short *)&options.verbose) != 1)
+	if (ev && sscanf(ev, "%d", &options.verbose) != 1)
 		options.verbose = 0;
 	ev = getenv("LDAP2DNS_EXEC");
 	if (ev) {
@@ -391,6 +399,7 @@ static int parse_options()
 			{"binddn", 1, 0, 'D'},
 			{"bindpw", 1, 0, 'w'},
 			{"basedn", 1, 0, 'b'},
+			{"id", 1, 0, 'i'},
 			{"output", 1, 0, 'o'},
 			{"ldif", 1, 0, 'L'},
 			{"host", 1, 0, 'h'},
@@ -407,7 +416,7 @@ static int parse_options()
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(main_argc, main_argv, "b:dD:e:fh:H:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
+		c = getopt_long(main_argc, main_argv, "b:dD:e:fh:H:i:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
 
 		if (c == -1)
 			break;
@@ -440,6 +449,10 @@ static int parse_options()
 			strncpy(options.urildap[0], optarg, sizeof(options.urildap[0]));
 			options.urildap[0][ sizeof( options.urildap[0] ) -1 ] = '\0';
 			options.useduris = 1;
+			break;
+		case 'i':
+			if ((p = getpwnam(optarg)) != (struct passwd *)0)
+				options.uid = p->pw_uid;
 			break;
 		case 'L':
 			if (optarg==NULL)
@@ -485,8 +498,10 @@ static int parse_options()
 			options.exec_command[ sizeof( options.exec_command ) -1 ] = '\0';
 			break;
 		case 't':
-			if (sscanf(optarg, "%hd", (short *)&options.searchtimeout.tv_sec)!=1)
+			if (sscanf(optarg, "%ld", &temptime)!=1)
 				options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
+			else
+				options.searchtimeout.tv_sec = temptime;
 			break;
 		case 'M':
 			if (sscanf(optarg, "%d", &options.reclimit)!=1)
@@ -504,8 +519,11 @@ static int parse_options()
 			exit(1);
 		}
 	}
-	if (options.is_daemon==1 && options.foreground==1)
+	if (options.is_daemon==1 && options.foreground==1) {
 		options.is_daemon = 2; /* foreground daemon */
+		if (options.update_iv == 0)	/* make sure we've got a nonzero update interval in foreground-daemon mode */
+			options.update_iv = UPDATE_INTERVAL;
+	}
 }
 
 
@@ -656,10 +674,10 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 			while (p = strchr(tmp, '.')) {
 				*p = '\0';
 				p++;
-				fprintf(tinyfile, "\\%03o%s", (unsigned int)strlen(tmp), tmp);
+				fprintf(tinyfile, "\\%03o%s", (unsigned)strlen(tmp), tmp);
 				tmp = p;
 			}
-			fprintf(tinyfile, "\\%03o%s", (unsigned int)strlen(tmp), tmp);
+			fprintf(tinyfile, "\\%03o%s", (unsigned)strlen(tmp), tmp);
 			fprintf(tinyfile, "\\000:%s:%s:%s\n", rr->ttl, rr->timestamp, rr->location);
 		}
 		if (namedzone) {
@@ -953,7 +971,7 @@ static void calc_checksum(int* num, int* sum)
 	char* attr_list[2] = { "DNSserial", NULL };
 
 	*num = *sum = 0;
-	if ( ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_ONELEVEL, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)!=LDAP_SUCCESS )
+	if ( ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
 		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
@@ -1297,6 +1315,8 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
+	if (options.uid && setuid(options.uid) == -1)
+		die_exit("Unable to set userid");
 
 	/* Initialization complete.  If we're in daemon mode, fork and continue */
 	if (options.is_daemon) {
@@ -1308,7 +1328,8 @@ int main(int argc, char** argv)
 		}
 
 		/* lowest priority */
-		nice(19);
+		if (nice(19) == -1)
+			fprintf(stderr, "ldap2dns: warning, unable to nice(19)\n");
 	}
 	set_datadir();
 
@@ -1363,8 +1384,8 @@ int main(int argc, char** argv)
 		}
 		if (options.ldifname[0] && ldifout)
 			fclose(ldifout);
-		if (options.exec_command[0])
-			system(options.exec_command);
+		if (options.exec_command[0] && system(options.exec_command) == -1)
+			fprintf(stderr, "ldap2dns: warning, unable to system(\"%s\")\n", options.exec_command);
 	    skip:
 		if ( (ldaperr = ldap_unbind_ext_s(ldap_con, NULL, NULL))!=LDAP_SUCCESS )
 			die_ldap(ldaperr);

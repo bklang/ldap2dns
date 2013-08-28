@@ -140,6 +140,7 @@ attributetype ( 1.3.6.1.4.1.7222.1.4.27
 
 objectclass ( 1.3.6.1.4.1.7222.1.4.19
 	NAME 'dnszone'
+	STRUCTURAL
 	MUST ( objectclass $ cn )
 	MAY ( dnszonename $ dnsserial $ dnsrefresh $ dnsretry $ dnsexpire
 		$ dnsminimum $ dnsadminmailbox $ dnszonemaster $ dnstype
@@ -148,13 +149,15 @@ objectclass ( 1.3.6.1.4.1.7222.1.4.19
 
 objectclass ( 1.3.6.1.4.1.7222.1.4.20
 	NAME 'dnsrrset'
-	SUP dnszone
+	STRUCTURAL
 	MUST ( objectclass $ cn )
 	MAY ( dnsdomainname $ dnsrr $ dnsclass $ dnstype $ dnsipaddr $ owner
 		$ dnscipaddr $ dnscname $ dnspreference $ dnsttl $ dnstimestamp
-		$ dnssrvpriority $ dnssrvweight $ dnssrvport $ dnstxt ) )
+		$ dnssrvpriority $ dnssrvweight $ dnssrvport $ dnstxt 
+		$ dnslocation ) )
 
 objectclass ( 1.3.6.1.4.1.7222.1.4.24
 	NAME 'dnsloccodes'
+	STRUCTURAL
 	MUST ( objectclass $ dnslocation )
 	MAY ( dnsipaddr $ uid $ description ) )

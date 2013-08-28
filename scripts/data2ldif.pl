@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id$
+# $Id: data2ldif.pl 456 2008-07-24 18:15:31Z bklang $
 use strict;
 use warnings;
 use POSIX qw(strftime);
@@ -354,7 +354,7 @@ LINE: while(<DATA>) {
             print $outfh "cn: $id\n";
             print $outfh "dnstype: txt\n";
             print $outfh "dnsdomainname: $fqdn.\n";
-            print $outfh "dnstxt: $s\n";
+            print $outfh "dnscname: $s.\n";
             if ($ttl) { print $outfh "dnsttl: $ttl\n"; }
             if ($timestamp) { print $outfh "dnstimestamp: $timestamp\n"; }
             if ($loc) { print $outfh "dnsloc: $loc\n"; }

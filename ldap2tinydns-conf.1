@@ -1,0 +1,61 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH LDAP2TINYDNS-CONF 1 "June 7, 2001"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+ldap2tinydns-conf \- part of the ldap2dns DNS management system
+.SH SYNOPSIS
+.B ldap2tinydns-conf
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B ldap2tinydns-conf
+command.
+This manual page was written for the Debian GNU/Linux distribution
+because the original program does not have a manual page yet.
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+\fBldap2tinydns-conf\fP
+is a shell script to help configure ldap2dns for use with tinydns.
+This script wil add the directory structure and files required to run ldap2dns
+under daemontools.
+.sp 1
+Run this script within your tinydns directory.
+.br
+For example:
+.B root@host[/var/tinydns]# ldap2tinydns-conf
+.sp 1
+This creates the ldap2tinydns directory under your tinydns directory and
+adds the default configuration under ldap2tinydns/env.
+
+.SH OPTIONS
+This shell script does not take any commanline options.
+
+.SH SEE ALSO
+
+tinydns, ldap2dns(1).
+
+Please visit the project homepage for more detail:
+.RI [ http://ldap2dns.tiscover.com/ ]
+.br
+.SH AUTHOR
+This manual page was written by Johann Botha <joe@blio.net>,
+for the Debian GNU/Linux system and is distributed under the GPL version 2
+or later.
+
+Jacob Rief <jacob.rief@tiscover.com> is the original author of this program..

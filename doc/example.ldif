@@ -3,7 +3,7 @@
 # Part of the ldap2dns package
 # (C) 2006 Ben Klang <ben@alkaloid.net>
 # http://projects.alkaloid.net
-# $Id$
+# $Id: example.ldif 296 2006-03-15 20:08:59Z bklang $
 ###
 
 # A couple notes before we get started

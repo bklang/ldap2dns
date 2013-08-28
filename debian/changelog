@@ -1,0 +1,12 @@
+ldap2dns (0.5.0-beta) unstable; urgency=low
+
+  * Imported all changes from upstream.
+  * New version.
+
+ -- Onlight Administration <onlight@occinc.com>  Mon, 26 Aug 2013 14:02:49 -0500
+
+ldap2dns (0.4.2-1) unstable; urgency=low
+
+  * Changed INSTALL_PREFIX to DESTDIR in Makefile
+
+ -- Onlight Administration <onlight@occinc.com>  Tue, 08 Feb 2011 10:57:55 -0600

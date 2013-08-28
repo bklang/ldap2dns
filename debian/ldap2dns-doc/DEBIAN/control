@@ -1,0 +1,11 @@
+Package: ldap2dns-doc
+Source: ldap2dns
+Version: 0.5.0-beta
+Architecture: all
+Maintainer: Onlight Administration <onlight@occinc.com>
+Installed-Size: 8
+Section: admin
+Priority: optional
+Homepage: https://svn.alkaloid.net/gpl/ldap2dns/trunk/
+Description: documentation for ldap2dns
+ Documentation pack for ldap2dns
