@@ -34,6 +34,7 @@
 #include <arpa/inet.h>
 #include <pwd.h>
 #include <ctype.h>
+#include <time.h>
 
 #define UPDATE_INTERVAL 59
 #define LDAP_CONF "/etc/ldap.conf"
@@ -251,15 +252,14 @@ static void parse_hosts(char* buf)
         }
 }
 
-static int parse_options()
+static void parse_options()
 {
 	extern char* optarg;
 	extern int optind, opterr, optopt;
 	char buf[256], value[128];
 	int len;
 	int c;
-	int digit_optind = 0;
-	FILE* ldap_conf,*fp;
+	FILE* ldap_conf;
 	char* ev;
 	int tmp;
 	int i;
@@ -289,7 +289,7 @@ static int parse_options()
 	options.uid = 0;
 
 	/* Attempt to parse the ldap.conf for system-wide valuse */
-	if (ldap_conf = fopen(LDAP_CONF, "r")) {
+	if ((ldap_conf = fopen(LDAP_CONF, "r")) != NULL) {
 		while(fgets(buf, 256, ldap_conf)!=0) {
 			int i;
 			if (sscanf(buf, "BASE %128s", value)==1){
@@ -390,7 +390,6 @@ static int parse_options()
 	
 	/* Finally, parse command-line options */
 	while (1) {
-		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
 		static struct option long_options[] = {
 			// name, has_arg, flag, val
@@ -550,15 +549,15 @@ static int expand_domainname(char target[MAX_DOMAIN_LEN], const char* source, in
 }
 
 
+#if defined DRAFT_RFC
 static int expand_reverse(char target[64], const char* source)
 {
 }
+#endif
 
 
 static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 {
-	char ip[4];
-	char buf[4];
 	char *tmp;
 	char *p;
 	int i;
@@ -670,7 +669,7 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		if (tinyfile) {
 			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->srvpriority >> 8, rr->srvpriority & 0xff, rr->srvweight >> 8, rr->srvweight & 0xff, rr->srvport >> 8, rr->srvport & 0xff);
 			tmp = strdup(rr->cname);
-			while (p = strchr(tmp, '.')) {
+			while ((p = strchr(tmp, '.')) != NULL) {
 				*p = '\0';
 				p++;
 				fprintf(tinyfile, "\\%03o%s", (unsigned)strlen(tmp), tmp);
@@ -788,9 +787,7 @@ static void read_resourcerecords(char* dn, int znix)
                 rr.srvweight = 0;
                 rr.srvport = 0;
 		for (attr = ldap_first_attribute(ldap_con, m, &ber); attr; attr = ldap_next_attribute(ldap_con, m, ber)) {
-			int len = strlen(attr);
 			struct berval** bvals;
-			char* dnsnname = "";
 
 			if ( (bvals = ldap_get_values_len(ldap_con, m, attr))!=NULL ) {
 				if (bvals[0] && bvals[0]->bv_len>0) {
@@ -932,7 +929,6 @@ static void read_resourcerecords(char* dn, int znix)
 static void write_zone(void)
 {
 	int len;
-	char soa[20];
 
 	if (tinyfile) {
 		fprintf(tinyfile, "Z%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s\n",
@@ -970,7 +966,7 @@ static void calc_checksum(int* num, int* sum)
 	char* attr_list[2] = { "DNSserial", NULL };
 
 	*num = *sum = 0;
-	if ( ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)) != LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
 		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
@@ -1165,9 +1161,6 @@ static void read_loccodes(void)
 		char* attr;
 		char* dn = ldap_get_dn(ldap_con, m);
 		int i, locmembers = 0;
-		char l_members[256][15];
-		//char loc[256][64];
-		char loc[2];
 		char ldif0;
 
 		loc_rec.locname[0] = '\0';
@@ -1293,8 +1286,8 @@ int main(int argc, char** argv)
 {
 	int soa_numzones;
 	int soa_checksum;
-	int old_numzones;
-	int old_checksum;
+	int old_numzones = 0;
+	int old_checksum = 0;
 	int res;
 
 	umask(022);
@@ -1348,12 +1341,12 @@ int main(int argc, char** argv)
 			sleep(options.update_iv);
 			continue;
 		}
-		calc_checksum(&old_numzones, &old_checksum);
+		calc_checksum(&soa_numzones, &soa_checksum);
 		if (old_numzones!=soa_numzones || old_checksum!=soa_checksum) {
 			if (options.verbose&1)
 				printf("DNSserial has changed in LDAP zone(s)\n");
-			soa_numzones = old_numzones;
-			soa_checksum = old_checksum;
+			old_numzones = soa_numzones;
+			old_checksum = soa_checksum;
 		} else {
 			goto skip;
 		}
@@ -1394,4 +1387,3 @@ int main(int argc, char** argv)
 	}
 	return 0;
 }
-
