@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 # Script to import data from DNS into LDAP
 # Copyright 2000, Jacob Rief
-# $Id: import.pl,v 1.24 2000/12/14 12:44:29 jrief Exp $
 
 ###### configure this ######
 # remember to allow zone transfers from Your nameserver

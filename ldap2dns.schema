@@ -1,6 +1,5 @@
 # schema for DNS data
 # include this file into Your slapd.conf for openldap-2.0.x
-# $Id$
 
 attributetype ( 1.3.6.1.4.1.7222.1.4.1
 	NAME 'dnszonename'

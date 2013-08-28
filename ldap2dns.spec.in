@@ -7,8 +7,6 @@
 #
 # Please submit bugfixes or comments via http://projects.alkaloid.net
 #
-# $Id: ldap2dns.spec.in 418 2008-01-21 20:39:55Z bklang $
-#
 
 # norootforbuild
 # neededforbuild  %OPENLDAPPKG%-devel

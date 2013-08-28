@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# $Id: data2ldif.pl 456 2008-07-24 18:15:31Z bklang $
 use strict;
 use warnings;
 use POSIX qw(strftime);

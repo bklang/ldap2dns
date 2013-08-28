@@ -1,5 +1,4 @@
 #!/bin/sh
-# $Id: ldap2tinydns-conf 183 2005-12-19 06:08:17Z bklang $
 LDAP2DNSUSER=$1
 LDAP2DNSLOGUSER=$2
 LDAP2DNSDIR=$3

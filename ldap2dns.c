@@ -1,6 +1,5 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id: ldap2dns.c 447 2008-05-15 01:02:59Z bklang $
  * Copyright 2005-2010 by Alkaloid Networks, LLC
  * Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2. See http://www.fsf.org for details

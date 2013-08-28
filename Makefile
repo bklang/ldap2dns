@@ -1,6 +1,4 @@
-# $Id: Makefile 418 2008-01-21 20:39:55Z bklang $ 
 VERSION=0.5.0
-ONLVERSION=$Revision: 14040 $
 RELEASE?=0
 CC=gcc
 DEBUG_CFLAGS?=-g -ggdb
