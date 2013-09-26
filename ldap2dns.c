@@ -195,6 +195,7 @@ static void print_usage(void)
 	printf("  -D binddn\tUse the distinguished name binddn to bind to the LDAP directory\n");
 	printf("  -w bindpasswd\tUse bindpasswd as the password for simple authentication\n");
 	printf("  -b\t\tSearch base to use instead of default\n");
+	printf("  -t timeout\tTimeout for LDAP search operations in seconds. Defaults to %d.\n", DEF_SEARCHTIMEOUT);
 	printf("  -o tinydns\tGenerate a tinydns compatible \"data\" file\n");
 	printf("  -o bind\t\tGenerate a BIND compatible zone files\n");
 	printf("  -L [filename]\tPrint output in LDIF format for reimport\n");
@@ -255,7 +256,6 @@ static void parse_hosts(char* buf)
 static void parse_options()
 {
 	extern char* optarg;
-	extern int optind, opterr, optopt;
 	char buf[256], value[128];
 	int len;
 	int c;
@@ -358,14 +358,12 @@ static void parse_options()
 		if (sscanf(ev, "%512[A-Za-z0-9 .:/_+-]", value)==1)
                                 parse_hosts(value);
 	}
-	ev = getenv("LDAP2DNS_TIMEOUT");
-	if (ev && sscanf(ev, "%ld", &temptime) != 1)
-		options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
-	else
+	if ((ev = getenv("LDAP2DNS_TIMEOUT")) != NULL
+	       && sscanf(ev, "%ld", &temptime) == 1)
 		options.searchtimeout.tv_sec = temptime;
-	ev = getenv("LDAP2DNS_RECLIMIT");
-	if (ev && sscanf(ev, "%d", &options.reclimit) != 1)
-		options.reclimit = DEF_RECLIMIT;
+	if ((ev = getenv("LDAP2DNS_RECLIMIT")) != NULL
+	       && sscanf(ev, "%d", &i) == 1)
+		options.reclimit = i;
 	ev = getenv("LDAP2DNS_OUTPUT");
 	if (ev) {
 		if (strcmp(ev, "bind")==0)
