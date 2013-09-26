@@ -1,10 +1,8 @@
 VERSION=0.5.0
 RELEASE?=0
-CC=gcc
 DEBUG_CFLAGS?=-g -ggdb
 CFLAGS?=-O2 -Wall -Werror
 LIBS?=-lldap -llber
-LD=gcc 
 LDFLAGS?=
 DESTDIR?=
 PREFIXDIR?=/usr/local
@@ -33,13 +31,13 @@ all: ldap2dns ldap2dnsd
 debug: ldap2dns-dbg
 
 ldap2dns: ldap2dns.o
-	$(LD) -o $@ $+ $(LDFLAGS) $(LIBS) 
+	$(CC) -o $@ $+ $(LDFLAGS) $(LIBS) 
 
 ldap2dnsd: ldap2dns
 	ln -f ldap2dns ldap2dnsd
 
 ldap2dns-dbg: ldap2dns.o-dbg
-	$(LD) -o $@ $+ $(LDFLAGS) $(LIBS) 
+	$(CC) -o $@ $+ $(LDFLAGS) $(LIBS) 
 
 ldap2dns.o: ldap2dns.c
 	$(CC) $(CFLAGS) -DVERSION='"$(VERSION)"' -c $< -o $@
@@ -49,13 +47,13 @@ ldap2dns.o-dbg: ldap2dns.c
 
 install: all
 	mkdir -p $(DESTDIR)/$(PREFIXDIR)/bin
-	mkdir -p $(DESTDIR)/$(LDAPCONFDIR)/schema
+	mkdir -p $(DESTDIR)/$(CCAPCONFDIR)/schema
 	mkdir -p $(DESTDIR)/$(MANDIR)/man1
 	install -s -m 755 ldap2dns $(DESTDIR)/$(PREFIXDIR)/bin/
 	ln -f $(DESTDIR)/$(PREFIXDIR)/bin/ldap2dns \
 		$(DESTDIR)/$(PREFIXDIR)/bin/ldap2dnsd
 	install -m 755 ldap2tinydns-conf $(DESTDIR)/$(PREFIXDIR)/bin/
-	install -m 644 ldap2dns.schema $(DESTDIR)/$(LDAPCONFDIR)/schema/
+	install -m 644 ldap2dns.schema $(DESTDIR)/$(CCAPCONFDIR)/schema/
 	install -m 644 ldap2dns.1 $(DESTDIR)/$(MANDIR)/man1
 	ln -f $(DESTDIR)/$(MANDIR)/man1/ldap2dns.1 \
 		$(DESTDIR)/$(MANDIR)/man1/ldap2dnsd.1
