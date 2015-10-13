@@ -1,3 +1,30 @@
+ldap2dns (0.5.2) unstable; urgency=low
+
+  * Fix read_dnszones() to replace slash "/" characters with underscore.
+
+ -- Onlight Administration <onlight@occinc.com>  Tue, 13 Oct 2015 15:57:34 -0500
+
+ldap2dns (0.5.1-beta) unstable; urgency=low
+
+  * Makefile tweaks to allow for CC to be overridden in the environment.
+  * Don't hard-set CC so that the default compiler is used unless it's
+    overridden from the environment or the command line.  Also, use $(CC)
+    rather than $(LD) for linking because this program doesn't require any
+    special linking features.
+  * These changes allow, among other things, clang's static analyzer wrapper
+    to work properly.
+  * Fix logic to set the default timeout.
+  * Although the default timeout is correctly initialized, it was overwritten
+    with random garbage when the LDAP2DNS_TIMEOUT environment variable
+    wasn't set.
+  * Update the LDAP2DNS_RECLIMIT logic to be consistent with the handling
+    of LDAP2DNS_TIMEOUT.
+  * Add help documentation for the "-t" option.
+  * Remove a few more unused variables as detected by clang.
+  * New version.
+
+ -- Onlight Administration <onlight@occinc.com>  Thu, 26 Sep 2013 10:38:10 -0500
+ 
 ldap2dns (0.5.0-beta) unstable; urgency=low
 
   * Imported all changes from upstream.

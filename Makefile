@@ -1,5 +1,5 @@
-VERSION=0.5.0
-RELEASE?=0
+VERSION=0.5.1
+RELEASE?=beta
 DEBUG_CFLAGS?=-g -ggdb
 CFLAGS?=-O2 -Wall -Werror
 LIBS?=-lldap -llber
@@ -65,9 +65,9 @@ clean:
 
 tar: clean
 	cd ..; \
-	mv ldap2dns ldap2dns-$(VERSION); \
-	tar --exclude .svn -czf ldap2dns-$(VERSION).tar.gz ldap2dns-$(VERSION); \
-	mv ldap2dns-$(VERSION) ldap2dns; \
+	mv ldap2dns ldap2dns-$(VERSION)-$(RELEASE); \
+	tar --exclude-vcs -czf ldap2dns-$(VERSION)-$(RELEASE).tar.gz ldap2dns-$(VERSION)-$(RELEASE); \
+	mv ldap2dns-$(VERSION)-$(RELEASE) ldap2dns; \
 	cd ldap2dns
 
 rpm: tar

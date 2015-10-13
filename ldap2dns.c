@@ -1107,8 +1107,12 @@ static void read_dnszones(void)
 			if (options.verbose&1)
 				printf("zonename: %s\n", zone.domainname);
 			if (options.output&OUTPUT_DB) {
-				char namedzonename[128];
+				char namedzonename[128], *s;
+				int i;
 				snprintf(namedzonename, sizeof(namedzonename), "%s.db", zone.domainname);
+				for (s = namedzonename ; (i = *s) != '\0' ; ++s)
+					if (i == '/')
+						*s = '_';
 				if ( !(namedzone = fopen(namedzonename, "w")) )
 					die_exit("Unable to open db-file for writing");
 			}
