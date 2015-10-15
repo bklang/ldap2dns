@@ -1097,6 +1097,8 @@ static void read_dnszones(void)
 		}
 		ldif0 = options.ldifname[0];
 		for (i = 0; i<zonenames; i++) {
+			char loc[4];	/* room for "-XX" and a '\0' where XX is the location code */
+
 			strncpy(zone.domainname, zdn[i], 64);
 			if (i>0)
 				options.ldifname[0] = '\0';
@@ -1105,7 +1107,15 @@ static void read_dnszones(void)
 			if (options.output&OUTPUT_DB) {
 				char namedzonename[128], *s;
 				int i;
-				snprintf(namedzonename, sizeof(namedzonename), "%s.db", zone.domainname);
+
+				/* fill loc[] with "-<loc>" if a location is set */
+				memset(loc, '\0', sizeof(loc));
+				if (zone.location[0] != '\0') {
+					loc[0] = '-';
+					memcpy(&loc[1], zone.location, 2);
+				}
+				snprintf(namedzonename, sizeof(namedzonename), "%s%s.db", zone.domainname,
+				    loc[0] ? loc : "");
 				for (s = namedzonename ; (i = *s) != '\0' ; ++s)
 					if (i == '/')
 						*s = '_';
