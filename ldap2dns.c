@@ -964,7 +964,7 @@ static void calc_checksum(int* num, int* sum)
 	char* attr_list[2] = { "DNSserial", NULL };
 
 	*num = *sum = 0;
-	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "&((objectclass=DNSzone)(dnszonename=*))", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)) != LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "(&(objectclass=DNSzone)(dnszonename=*))", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)) != LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
 		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
@@ -996,7 +996,7 @@ static void read_dnszones(void)
 	LDAPMessage* m;
 	int ldaperr;
 
-	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "&((objectclass=DNSzone)(dnszonename=*))", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "(&(objectclass=DNSzone)(dnszonename=*))", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
 		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
