@@ -1,4 +1,3 @@
-# $Id$
 * Document scripts/* functionality (2005/12/08 bklang)
 
 * Modify scripts/data2ldif.pl to merge multiple A records for a single

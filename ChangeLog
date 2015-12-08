@@ -1,5 +1,7 @@
 # $Id$
 Version 0.5.0-beta (latest)
+* Add Debian man page for ldap2tinydns-conf.  Add symlink for ldap2dnsd
+  man page.
 * BACKWARD COMPATIBILITY BREAK: DNS TXT records now store their data in the new
   DNStxt attribute instead of the old DNScname attribute.  You must manually
   update any DNS TXT records for them to continue working.
@@ -9,7 +11,7 @@ Version 0.5.0-beta (latest)
 * Fix TXT records under Bind (thanks Alex Sanderson for the patch)
 * Fix CNAME field to allow for long DKIM fields (thanks to Stephen Ayotte)
 
-Version 0.4.2
+Version 0.4.2 (latest)
 * Add SMF manifest
 * Add manpage
 * Ensure all options get initialized to defaults before any attempts at setting

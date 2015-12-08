@@ -1,0 +1,43 @@
+#! /bin/sh
+# postinst script for ldap2dns
+
+set -e
+
+case "$1" in
+	configure)
+		cd /usr/bin
+		ln -f ldap2dns ldap2dnsd
+		cd -
+		;;
+
+	abort-upgrade|abort-remove|abort-deconfigure)
+		exit 0
+		;;
+
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 0
+		;;
+esac
+
+umask 022
+
+echo ""
+echo "ldap2dns has been installed."
+echo ""
+echo "To set up services, please see the documentation at:"
+echo "http://ldap2dns.tiscover.com/ or"
+echo "/usr/share/doc/ldap2dns/README.txt.gz"
+echo ""
+echo "To Configure ldap2dns for use with djbdns:"
+echo "Run ldap2tinydns-conf in your tinydns directory, something like:"
+echo "root@host:/var/tinydns# ldap2tinydns-conf"
+echo ""
+echo "Then tell svscan about the new service:"
+echo "ln -s /var/tinydns/ldap2tinydns /var/lib/svscan"
+echo ""
+
+#DEBHELPER#
+
+exit 0
+

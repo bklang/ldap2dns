@@ -7,8 +7,6 @@
 #
 # Please submit bugfixes or comments via http://projects.alkaloid.net
 #
-# $Id$
-#
 
 # norootforbuild
 # neededforbuild  %OPENLDAPPKG%-devel
@@ -52,7 +50,7 @@ make VERSION=%{version} RPM_OPT_FLAGS="$RPM_OPT_FLAGS"
 
 %install
 [ -n "%{buildroot}" -a "%{buildroot}" != / ] && rm -rf %{buildroot}
-make INSTALL_PREFIX=$RPM_BUILD_ROOT install
+make DESTDIR=$RPM_BUILD_ROOT install
 
 %clean
 [ -n "%{buildroot}" -a "%{buildroot}" != / ] && rm -rf %{buildroot}

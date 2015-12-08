@@ -1,0 +1,28 @@
+Source: ldap2dns
+Section: admin
+Priority: optional
+Maintainer: Onlight Administration <onlight@occinc.com>
+Build-Depends: debhelper (>= 7), libldap2-dev (>= 2.1.22-1)
+Standards-Version: 3.8.3
+Homepage: https://svn.alkaloid.net/gpl/ldap2dns/trunk/
+
+Package: ldap2dns
+Architecture: any
+Depends: bind | bind9 | djbdns | djbdns-installer, libc6 (>= 2.7-1), libldap-2.4-2 (>= 2.4.7)
+Recommends: ldap-utils (>= 2.1.22-1)
+Description: LDAP based DNS management system.
+ ldap2dns is a program to create DNS (Domain Name Service) records directly
+ from an LDAP directory. It can and should be used to replace the secondary
+ name-server by a second primary one. ldap2dns reduces all kind of
+ administration overhead: No more flat file editing, no more zone file
+ editing. After having installed ldap2dns, the administrator only has to
+ access the LDAP directory.
+ .
+ ldap2dns is designed to write ASCII data files used by tinydns from the
+ djbdns package, but also may be used to write .db-files used by named as
+ found in the BIND package.
+
+Package: ldap2dns-doc
+Architecture: all
+Description: documentation for ldap2dns
+ Documentation pack for ldap2dns

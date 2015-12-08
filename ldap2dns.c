@@ -1,6 +1,5 @@
 /*
  * Create data from an LDAP directory service to be used for tinydns
- * $Id$
  * Copyright 2005-2010 by Alkaloid Networks, LLC
  * Copyright 2000-2005 by Jacob Rief <jacob.rief@tiscover.com>
  * License: GPL version 2. See http://www.fsf.org for details
@@ -33,6 +32,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <pwd.h>
+#include <ctype.h>
+#include <time.h>
 
 #define UPDATE_INTERVAL 59
 #define LDAP_CONF "/etc/ldap.conf"
@@ -42,6 +44,18 @@
 #define DEF_SEARCHTIMEOUT 40
 #define DEF_RECLIMIT LDAP_NO_LIMIT
 #define MAX_DOMAIN_LEN 256
+
+/* number of zone, resource entries or location entries to allocate in a chunk */
+#define ALLOC_INCR 20
+
+/* maximum number of domain names per zone (a dnszone is allowed muliple dnszonename attributes) */
+#define MAX_DNSZONENAME	10
+
+/* maxinum number of dnsipaddr entries per rrset */
+#define MAX_DNSIPADDR 10
+
+/* maximum number of location members per location */
+#define MAX_LOCMEMBERS 256
 
 static char tinydns_textfile[256];
 static char tinydns_texttemp[256];
@@ -76,9 +90,12 @@ static void die_ldap(int err)
 }
 
 
-static struct
+/*
+ * Zones
+ */
+static struct zonedata
 {
-	char domainname[64];
+	char domainname[MAX_DNSZONENAME][64];
 	char zonemaster[64];
 	char class[16];
 	char adminmailbox[64];
@@ -89,28 +106,45 @@ static struct
 	char minimum[12];
 	char ttl[12];
 	char timestamp[20];
-	char location[2];
+	char location[3];
+	char *dn;
+	int  rrs;		/* index into rrlist[] of the list rrs for this zone */
+	int  nrrs;		/* number of rrlist entries for this zone */
 } zone;
 
-static struct
+struct zonedata *zonelist;	/* array of struct zonedata */
+int nzones;			/* number of valid items in zonelist */
+int zonelistsize;		/* allocated number of items in zonelist */
+
+/*
+ * Location records
+ */
+static struct locrec
 {
 	char locname[3];
-	char member[256][16];
+	char member[MAX_LOCMEMBERS][16];
 } loc_rec;
 
+struct locrec *locs;		/* array of struct locrec */
+int nlocs;			/* number of valid items in locs */
+int loclistsize;		/* allocated number of items in zonelist */
+
+/*
+ * Resource records
+ */
 struct resourcerecord
 {
 	char cn[64];
 	char dnsdomainname[MAX_DOMAIN_LEN];
 	char class[16];
 	char type[16];
-	char ipaddr[256][80];
+	char ipaddr[MAX_DNSIPADDR][80];
 	char cipaddr[80];
 	char cname[1024]; /* large enough to store DKIM entries, which by rfc5322 have an upper-limit of 998chars */
 	char ttl[12];
 	char timestamp[20];
 	char preference[12];
-	char location[2];
+	char location[3];
 #if defined DRAFT_RFC
 	char rr[1024];
 	char aliasedobjectname[256];
@@ -120,9 +154,16 @@ struct resourcerecord
 	int srvweight;
 	int srvport;
 	char txt[256];
+	int zone;		/* index into zonelist[] of owning zone for this record */
 };
 
+struct resourcerecord *rrlist;	/* array of struct resourcerecord */
+int nrrlist;			/* number of valid items in rrlist */
+int rrlistsize;			/* allocated number of items in rrlist */
 
+/*
+ * Program options
+ */
 static struct
 {
 	char searchbase[128];
@@ -143,8 +184,115 @@ static struct
 	int use_tls[MAXHOSTS];
 	struct timeval searchtimeout;
 	int reclimit;
+	int uid;
 } options;
 
+/*
+ * Add "zone" to the zonelist array
+ *
+ * dn - LDAP dn of the entry from which "zone" originated.
+ */
+static void addzone(const char *dn) {
+	if (dn) {
+		zone.dn = malloc(strlen(dn) + 1);
+		strcpy(zone.dn, dn);
+	} else {
+		zone.dn = NULL;
+	}
+	if (zonelistsize - nzones == 0) {
+		if (zonelist == NULL) {
+			/* init */
+			zonelist = malloc(ALLOC_INCR * sizeof(*zonelist));
+		} else {
+			/* expand */
+			zonelist = realloc(zonelist,
+			    zonelistsize * sizeof(*zonelist)
+			    + ALLOC_INCR * sizeof(*zonelist));
+		}
+		zonelistsize += ALLOC_INCR;
+	}
+	zonelist[nzones++] = zone;
+}
+
+/*
+ * Free the zone array
+ */
+static void freezones() {
+	if (zonelist) {
+		int i;
+
+		for (i = 0 ; i < nzones ; ++i) {
+			if (zonelist[i].dn != NULL)
+				free(zonelist[i].dn);
+		}
+		free(zonelist);
+		zonelist = NULL;
+		zonelistsize = 0;
+		nzones = 0;
+	}
+}
+
+/*
+ * Add an entry to the rrlist array
+ */
+static void addrr(const struct resourcerecord *rr) {
+	if (rrlistsize - nrrlist == 0) {
+		if (rrlist == NULL) {
+			/* init */
+			rrlist = malloc(ALLOC_INCR * sizeof(*rrlist));
+		} else {
+			/* expand */
+			rrlist = realloc(rrlist,
+			    rrlistsize * sizeof(*rrlist)
+			    + ALLOC_INCR * sizeof(*rrlist));
+		}
+		rrlistsize += ALLOC_INCR;
+	}
+	rrlist[nrrlist++] = *rr;
+}
+
+/*
+ * Free the rrlist array
+ */
+static void freerrlist() {
+	if (rrlist) {
+		free(rrlist);
+		rrlist = NULL;
+		rrlistsize = 0;
+		nrrlist = 0;
+	}
+}
+
+/*
+ * Add an entryto the locs array
+ */
+static void addloc(struct locrec *loc) {
+	if (loclistsize - nlocs == 0) {
+		if (locs == NULL) {
+			/* init */
+			locs = malloc(ALLOC_INCR * sizeof(*locs));
+		} else {
+			/* expand */
+			locs = realloc(locs,
+			    loclistsize * sizeof(*locs)
+			    + ALLOC_INCR * sizeof(*locs));
+		}
+		loclistsize += ALLOC_INCR;
+	}
+	locs[nlocs++] = *loc;
+}
+
+/*
+ * free the locs array
+ */
+static void freeloclist() {
+	if (locs) {
+		free(locs);
+		locs = NULL;
+		loclistsize = 0;
+		nlocs = 0;
+	}
+}
 
 static void die_exit(const char* message)
 {
@@ -192,18 +340,21 @@ static void print_usage(void)
 	printf("  -D binddn\tUse the distinguished name binddn to bind to the LDAP directory\n");
 	printf("  -w bindpasswd\tUse bindpasswd as the password for simple authentication\n");
 	printf("  -b\t\tSearch base to use instead of default\n");
+	printf("  -t timeout\tTimeout for LDAP search operations in seconds. Defaults to %d.\n", DEF_SEARCHTIMEOUT);
 	printf("  -o tinydns\tGenerate a tinydns compatible \"data\" file\n");
 	printf("  -o bind\t\tGenerate a BIND compatible zone files\n");
 	printf("  -L [filename]\tPrint output in LDIF format for reimport\n");
 	printf("  -h host\tHostname of LDAP server, defaults to localhost\n");
 	printf("  -p port\tPort number to connect to LDAP server, defaults to %d\n", LDAP_PORT);
 	printf("  -H hostURI\tURI (ldap://hostname or ldaps://hostname of LDAP server\n");
-	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n", UPDATE_INTERVAL);
+	printf("  -i user\tRun as user\n");
+	printf("  -u numsecs\tUpdate DNS data after numsecs. Defaults to %d. Daemon mode only\n\t\t", UPDATE_INTERVAL);
+	printf("\n");
 	printf("  -e \"exec-cmd\"\tCommand to execute after data is generated\n");
 	printf("  -d\t\tRun as a daemon (same as if invoked as ldap2dnsd)\n");
 	printf("  -f\t\tIf running as a daemon stay in the foreground (do not fork)\n");
 	printf("  -v\t\trun in verbose mode, repeat for more verbosity\n");
-	printf("  -V\t\tprint version and exit\n");
+	printf("  -V\t\tprint version and exit\n\n");
 	printf("\n");
 	printf("Note: Zone data are only updated after zone serials increment.\n");
 }
@@ -247,20 +398,18 @@ static void parse_hosts(char* buf)
         }
 }
 
-static int parse_options()
+static void parse_options()
 {
 	extern char* optarg;
-	extern int optind, opterr, optopt;
 	char buf[256], value[128];
 	int len;
-	short slen;
 	int c;
-	int digit_optind = 0;
-	FILE* ldap_conf,*fp;
+	FILE* ldap_conf;
 	char* ev;
 	int tmp;
-	short stmp;
 	int i;
+	long temptime;		// scratch long integer to assign to time_t values
+	struct passwd *p;
 
 	/* Initialize the options to their defaults */
 	len = strlen(main_argv[0]);
@@ -282,9 +431,10 @@ static int parse_options()
 	options.verbose = 0;
 	options.ldifname[0] = '\0';
 	strcpy(options.exec_command, "");
+	options.uid = 0;
 
 	/* Attempt to parse the ldap.conf for system-wide valuse */
-	if (ldap_conf = fopen(LDAP_CONF, "r")) {
+	if ((ldap_conf = fopen(LDAP_CONF, "r")) != NULL) {
 		while(fgets(buf, 256, ldap_conf)!=0) {
 			int i;
 			if (sscanf(buf, "BASE %128s", value)==1){
@@ -295,7 +445,7 @@ static int parse_options()
 				parse_hosts(value);
 			if (sscanf(buf, "HOST %512[A-Za-z0-9 .:_+-]", value)==1)
 				parse_hosts(value);
-			if (sscanf(buf, "PORT %hd", &slen)==1)
+			if (sscanf(buf, "PORT %d", &len)==1)
 				for (i = 0; i<MAXHOSTS; i++)
 					options.port[i] = len;
 			if (sscanf(buf, "BINDDN %128s", value)==1) {
@@ -344,7 +494,7 @@ static int parse_options()
 		options.hostname[options.usedhosts][ sizeof(options.hostname[options.usedhosts]) -1 ] = '\0';
 		options.usedhosts++;
 		ev = getenv("LDAP2DNS_PORT");
-		if (ev && sscanf(ev, "%hd", &stmp) != 1)
+		if (ev && sscanf(ev, "%d", &tmp) != 1)
 			for (i = 0; i<MAXHOSTS; i++)
 				options.port[i] = tmp;
 	}
@@ -353,12 +503,12 @@ static int parse_options()
 		if (sscanf(ev, "%512[A-Za-z0-9 .:/_+-]", value)==1)
                                 parse_hosts(value);
 	}
-	ev = getenv("LDAP2DNS_TIMEOUT");
-	if (ev && sscanf(ev, "%hd", (short *)&options.searchtimeout.tv_sec) != 1)
-		options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
-	ev = getenv("LDAP2DNS_RECLIMIT");
-	if (ev && sscanf(ev, "%d", &options.reclimit) != 1)
-		options.reclimit = DEF_RECLIMIT;
+	if ((ev = getenv("LDAP2DNS_TIMEOUT")) != NULL
+	       && sscanf(ev, "%ld", &temptime) == 1)
+		options.searchtimeout.tv_sec = temptime;
+	if ((ev = getenv("LDAP2DNS_RECLIMIT")) != NULL
+	       && sscanf(ev, "%d", &i) == 1)
+		options.reclimit = i;
 	ev = getenv("LDAP2DNS_OUTPUT");
 	if (ev) {
 		if (strcmp(ev, "bind")==0)
@@ -373,7 +523,7 @@ static int parse_options()
 			options.output = OUTPUT_DATA;
 	}
 	ev = getenv("LDAP2DNS_VERBOSE");
-	if (ev && sscanf(ev, "%hd", (short *)&options.verbose) != 1)
+	if (ev && sscanf(ev, "%d", &options.verbose) != 1)
 		options.verbose = 0;
 	ev = getenv("LDAP2DNS_EXEC");
 	if (ev) {
@@ -383,7 +533,6 @@ static int parse_options()
 	
 	/* Finally, parse command-line options */
 	while (1) {
-		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
 		static struct option long_options[] = {
 			// name, has_arg, flag, val
@@ -391,6 +540,7 @@ static int parse_options()
 			{"binddn", 1, 0, 'D'},
 			{"bindpw", 1, 0, 'w'},
 			{"basedn", 1, 0, 'b'},
+			{"id", 1, 0, 'i'},
 			{"output", 1, 0, 'o'},
 			{"ldif", 1, 0, 'L'},
 			{"host", 1, 0, 'h'},
@@ -407,7 +557,7 @@ static int parse_options()
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(main_argc, main_argv, "b:dD:e:fh:H:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
+		c = getopt_long(main_argc, main_argv, "b:dD:e:fh:H:i:o:p:u:M:m:t:Vv::w:L::", long_options, &option_index);
 
 		if (c == -1)
 			break;
@@ -440,6 +590,10 @@ static int parse_options()
 			strncpy(options.urildap[0], optarg, sizeof(options.urildap[0]));
 			options.urildap[0][ sizeof( options.urildap[0] ) -1 ] = '\0';
 			options.useduris = 1;
+			break;
+		case 'i':
+			if ((p = getpwnam(optarg)) != (struct passwd *)0)
+				options.uid = p->pw_uid;
 			break;
 		case 'L':
 			if (optarg==NULL)
@@ -485,8 +639,10 @@ static int parse_options()
 			options.exec_command[ sizeof( options.exec_command ) -1 ] = '\0';
 			break;
 		case 't':
-			if (sscanf(optarg, "%hd", (short *)&options.searchtimeout.tv_sec)!=1)
+			if (sscanf(optarg, "%ld", &temptime)!=1)
 				options.searchtimeout.tv_sec = DEF_SEARCHTIMEOUT;
+			else
+				options.searchtimeout.tv_sec = temptime;
 			break;
 		case 'M':
 			if (sscanf(optarg, "%d", &options.reclimit)!=1)
@@ -504,15 +660,18 @@ static int parse_options()
 			exit(1);
 		}
 	}
-	if (options.is_daemon==1 && options.foreground==1)
+	if (options.is_daemon==1 && options.foreground==1) {
 		options.is_daemon = 2; /* foreground daemon */
+		if (options.update_iv == 0)	/* make sure we've got a nonzero update interval in foreground-daemon mode */
+			options.update_iv = UPDATE_INTERVAL;
+	}
 }
 
 
-static int expand_domainname(char target[MAX_DOMAIN_LEN], const char* source, int slen)
+static int expand_domainname(char target[MAX_DOMAIN_LEN], const char* source, int slen, int whichdomain)
 {
 	int tlen;
-	tlen = strlen(zone.domainname);
+	tlen = strlen(zone.domainname[whichdomain]);
 
 	if ((slen + tlen) > MAX_DOMAIN_LEN)
 		return 0;
@@ -523,25 +682,25 @@ static int expand_domainname(char target[MAX_DOMAIN_LEN], const char* source, in
 	}
 	strncpy(target, source, slen);
 	target[slen] = '\0';
-	if (zone.domainname[0]) {
-		if (zone.domainname[0]!='.')
+	if (zone.domainname[whichdomain][0]) {
+		if (zone.domainname[whichdomain][0]!='.')
 			strcat(target, ".");
-		strcat(target, zone.domainname);
+		strcat(target, zone.domainname[whichdomain]);
 		return 1;
 	}
 	return 0;
 }
 
 
+#if defined DRAFT_RFC
 static int expand_reverse(char target[64], const char* source)
 {
 }
+#endif
 
 
 static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 {
-	char ip[4];
-	char buf[4];
 	char *tmp;
 	char *p;
 	int i;
@@ -653,13 +812,13 @@ static void write_rr(struct resourcerecord* rr, int ipdx, int znix)
 		if (tinyfile) {
 			fprintf(tinyfile, ":%s:33:\\%03o\\%03o\\%03o\\%03o\\%03o\\%03o", rr->dnsdomainname, rr->srvpriority >> 8, rr->srvpriority & 0xff, rr->srvweight >> 8, rr->srvweight & 0xff, rr->srvport >> 8, rr->srvport & 0xff);
 			tmp = strdup(rr->cname);
-			while (p = strchr(tmp, '.')) {
+			while ((p = strchr(tmp, '.')) != NULL) {
 				*p = '\0';
 				p++;
-				fprintf(tinyfile, "\\%03o%s", (unsigned int)strlen(tmp), tmp);
+				fprintf(tinyfile, "\\%03o%s", (unsigned)strlen(tmp), tmp);
 				tmp = p;
 			}
-			fprintf(tinyfile, "\\%03o%s", (unsigned int)strlen(tmp), tmp);
+			fprintf(tinyfile, "\\%03o%s", (unsigned)strlen(tmp), tmp);
 			fprintf(tinyfile, "\\000:%s:%s:%s\n", rr->ttl, rr->timestamp, rr->location);
 		}
 		if (namedzone) {
@@ -741,9 +900,17 @@ static void read_resourcerecords(char* dn, int znix)
 	if ( (ldaperr = ldap_search_ext_s(ldap_con, dn, LDAP_SCOPE_SUBTREE, "objectclass=DNSrrset", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
-		fprintf(stderr, "\n[**] Warning: No DNS records found for domain %s.\n\n", zone.domainname);
+		fprintf(stderr, "\n[**] Warning: No DNS records found for domain %s",
+			zone.domainname[znix]);
+		if (zone.location[0])
+			fprintf(stderr, " in location \"%s\"", zone.location);
+		fprintf(stderr, ".\n\n");
 		return;
 	}
+
+	zonelist[nzones - 1].rrs = nrrlist;
+	zonelist[nzones - 1].nrrs = 0;
+
 	for (m = ldap_first_entry(ldap_con, res); m; m = ldap_next_entry(ldap_con, m)) {
 		BerElement* ber = NULL;
 		char* attr;
@@ -754,7 +921,7 @@ static void read_resourcerecords(char* dn, int znix)
 		if (options.ldifname[0])
 			fprintf(ldifout, "dn: %s\n", dn);
 		rr.cn[0] = '\0';
-		strncpy(rr.dnsdomainname, zone.domainname, 64);
+		strncpy(rr.dnsdomainname, zone.domainname[znix], 64);
 		strncpy(rr.class, "IN", 3);
 		rr.type[0] = '\0';
 		rr.cname[0] = '\0';
@@ -770,10 +937,9 @@ static void read_resourcerecords(char* dn, int znix)
                 rr.srvpriority = 0;
                 rr.srvweight = 0;
                 rr.srvport = 0;
+
 		for (attr = ldap_first_attribute(ldap_con, m, &ber); attr; attr = ldap_next_attribute(ldap_con, m, ber)) {
-			int len = strlen(attr);
 			struct berval** bvals;
-			char* dnsnname = "";
 
 			if ( (bvals = ldap_get_values_len(ldap_con, m, attr))!=NULL ) {
 				if (bvals[0] && bvals[0]->bv_len>0) {
@@ -785,7 +951,7 @@ static void read_resourcerecords(char* dn, int znix)
 						if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, rr.cn);
 					} else if (strcasecmp(attr, "DNSdomainname")==0) {
-						if (!expand_domainname(rr.dnsdomainname, bvals[0]->bv_val, bvals[0]->bv_len))
+						if (!expand_domainname(rr.dnsdomainname, bvals[0]->bv_val, bvals[0]->bv_len, znix))
 							rr.dnsdomainname[0] = '\0';;
 						if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
@@ -802,7 +968,7 @@ static void read_resourcerecords(char* dn, int znix)
 					} else if (strcasecmp(attr, "DNSipaddr")==0) {
 						int ip[4];
 						unsigned char in6addr[sizeof(struct in6_addr)];
-						for (ipaddresses = 0; bvals[ipaddresses] && ipaddresses<256; ipaddresses++) {
+						for (ipaddresses = 0; bvals[ipaddresses] && ipaddresses < MAX_DNSIPADDR; ipaddresses++) {
 							rr.ipaddr[ipaddresses][0] = '\0';
 							if (inet_pton(AF_INET6, bvals[ipaddresses]->bv_val, in6addr)==1) {
 								snprintf(rr.ipaddr[ipaddresses], sizeof(rr.ipaddr[ipaddresses]), "%s", bvals[ipaddresses]->bv_val);
@@ -827,7 +993,7 @@ static void read_resourcerecords(char* dn, int znix)
 								fprintf(ldifout, "%s: %s\n", attr, rr.cipaddr);
 						}
 					} else if (strcasecmp(attr, "DNScname")==0) {
-						if (!expand_domainname(rr.cname, bvals[0]->bv_val, bvals[0]->bv_len))
+						if (!expand_domainname(rr.cname, bvals[0]->bv_val, bvals[0]->bv_len, znix))
 							rr.cname[0] = '\0';
 						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
@@ -851,7 +1017,7 @@ static void read_resourcerecords(char* dn, int znix)
 						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
 					} else if (strcasecmp(attr, "DNSlocation")==0) {
-						if (sscanf(bvals[0]->bv_val, "%s", rr.location)!=1)
+						if (sscanf(bvals[0]->bv_val, "%2s", rr.location)!=1)
 							rr.location[0] = '\0';
 						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
@@ -889,6 +1055,8 @@ static void read_resourcerecords(char* dn, int znix)
 				ldap_value_free_len(bvals);
 			}
 		}
+		addrr(&rr);
+		++zonelist[nzones - 1].nrrs;
 #if defined DRAFT_RFC
 		if (rr.rr[0]) {
 			parse_rr(&rr);
@@ -912,20 +1080,19 @@ static void read_resourcerecords(char* dn, int znix)
 }
 
 
-static void write_zone(void)
+static void write_zone(int whichdomain)
 {
 	int len;
-	char soa[20];
 
 	if (tinyfile) {
 		fprintf(tinyfile, "Z%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s\n",
-		    zone.domainname, zone.zonemaster, zone.adminmailbox,
+		    zone.domainname[whichdomain], zone.zonemaster, zone.adminmailbox,
 		    zone.serial, zone.refresh, zone.retry, zone.expire,
 		    zone.minimum, zone.ttl, zone.timestamp, zone.location);
 	}
 	if (namedmaster) {
 		fprintf(namedmaster, "zone \"%s\" %s {\n\ttype master;\n\tfile \"%s.db\";\n};\n",
-		    zone.domainname, zone.class, zone.domainname);
+		    zone.domainname[whichdomain], zone.class, zone.domainname[whichdomain]);
 	}
 	if (namedzone) {
 		fprintf(namedzone, ";\n; Automatically generated by ldap2dns v%s - DO NOT EDIT!\n;\n\n", VERSION);
@@ -933,7 +1100,7 @@ static void write_zone(void)
 			fprintf(namedzone, "$TTL %s\n", zone.ttl);
 		else
 			fprintf(namedzone, "$TTL 3600\n");
-		fprintf(namedzone, "%s. IN SOA ", zone.domainname);
+		fprintf(namedzone, "%s. IN SOA ", zone.domainname[whichdomain]);
 		len = strlen(zone.zonemaster);
 		fprintf(namedzone, (zone.zonemaster[len-1]=='.') ? "%s " : "%s. ", zone.zonemaster);
 		len = strlen(zone.adminmailbox);
@@ -953,7 +1120,7 @@ static void calc_checksum(int* num, int* sum)
 	char* attr_list[2] = { "DNSserial", NULL };
 
 	*num = *sum = 0;
-	if ( ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_ONELEVEL, "objectclass=DNSzone", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "(&(objectclass=DNSzone)(dnszonename=*))", attr_list, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res)) != LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
 		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
@@ -979,18 +1146,13 @@ static void calc_checksum(int* num, int* sum)
 	ldap_msgfree(res);
 }
 
-
 static void read_dnszones(void)
 {
 	LDAPMessage* res = NULL;
 	LDAPMessage* m;
 	int ldaperr;
 
-	if (tinyfile)
-		fprintf(tinyfile, "#\n# Automatically generated by ldap2dns v%s - DO NOT EDIT!\n#\n\n", VERSION);
-	if (namedmaster)
-		fprintf(namedmaster, "#\n# Automatically generated by ldap2dns v%s - DO NOT EDIT!\n#\n\n", VERSION);
-	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "objectclass=DNSzone", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
+	if ( (ldaperr = ldap_search_ext_s(ldap_con, options.searchbase[0] ? options.searchbase : NULL, LDAP_SCOPE_SUBTREE, "(&(objectclass=DNSzone)(dnszonename=*))", NULL, 0, NULL, NULL, &options.searchtimeout, options.reclimit, &res))!=LDAP_SUCCESS )
 		die_ldap(ldaperr);
 	if (ldap_count_entries(ldap_con, res) < 1) {
 		fprintf(stderr, "\n[**] Warning: No records returned from search.  Check for correct credentials,\n[**] LDAP hostname, and search base DN.\n\n");
@@ -1001,7 +1163,6 @@ static void read_dnszones(void)
 		char* attr;
 		char* dn;
 		int i, zonenames = 0;
-		char zdn[256][64];
 		char ldif0;
 
 		strncpy(zone.class, "IN", 3);
@@ -1013,6 +1174,11 @@ static void read_dnszones(void)
 		zone.ttl[0] = '\0';
 		zone.timestamp[0] = '\0';
 		zone.location[0] = '\0';
+		zone.dn = NULL;
+		zone.rrs = 0;
+		zone.nrrs = 0;
+		for (i = 0 ; i < MAX_DNSZONENAME ; ++i)
+			zone.domainname[i][0] = '\0';
 		dn = ldap_get_dn(ldap_con, m);
 		if (options.ldifname[0])
 			fprintf(ldifout, "dn: %s\n", dn);
@@ -1027,11 +1193,11 @@ static void read_dnszones(void)
 						if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, bvals[0]->bv_val);
 					} else if (strcasecmp(attr, "DNSzonename")==0) {
-						for (zonenames = 0; bvals[zonenames] && zonenames<256; zonenames++) {
-							if (sscanf(bvals[zonenames]->bv_val, "%64s", zdn[zonenames])!=1)
-								zdn[zonenames][0] = '\0';
+						for (zonenames = 0; bvals[zonenames] && zonenames<MAX_DNSZONENAME; zonenames++) {
+							if (sscanf(bvals[zonenames]->bv_val, "%64s", zone.domainname[zonenames])!=1)
+								zone.domainname[zonenames][0] = '\0';
 							else if (options.ldifname[0])
-								fprintf(ldifout, "%s: %s\n", attr, zdn[zonenames]);
+								fprintf(ldifout, "%s: %s\n", attr, zone.domainname[zonenames]);
 						}
 					} else if (strcasecmp(attr, "DNSserial")==0) {
 						if (sscanf(bvals[0]->bv_val, "%12s", zone.serial)!=1)
@@ -1089,19 +1255,34 @@ static void read_dnszones(void)
 			}
 		}
 		ldif0 = options.ldifname[0];
+		if (zonenames > 0)
+			addzone(dn);
 		for (i = 0; i<zonenames; i++) {
-			strncpy(zone.domainname, zdn[i], 64);
+			char loc[4];	/* room for "-XX" and a '\0' where XX is the location code */
+
 			if (i>0)
 				options.ldifname[0] = '\0';
 			if (options.verbose&1)
-				printf("zonename: %s\n", zone.domainname);
+				printf("zonename: %s\n", zone.domainname[i]);
 			if (options.output&OUTPUT_DB) {
-				char namedzonename[128];
-				snprintf(namedzonename, sizeof(namedzonename), "%s.db", zone.domainname);
+				char namedzonename[128], *s;
+				int i;
+
+				/* fill loc[] with "-<loc>" if a location is set */
+				memset(loc, '\0', sizeof(loc));
+				if (zone.location[0] != '\0') {
+					loc[0] = '-';
+					memcpy(&loc[1], zone.location, 2);
+				}
+				snprintf(namedzonename, sizeof(namedzonename), "%s%s.db", zone.domainname[i],
+				    loc[0] ? loc : "");
+				for (s = namedzonename ; (i = *s) != '\0' ; ++s)
+					if (i == '/')
+						*s = '_';
 				if ( !(namedzone = fopen(namedzonename, "w")) )
 					die_exit("Unable to open db-file for writing");
 			}
-			write_zone();
+			write_zone(i);
 			read_resourcerecords(dn, i);
 			if (namedzone)
 				fclose(namedzone);
@@ -1116,11 +1297,52 @@ static void read_dnszones(void)
 	ldap_msgfree(res);
 }
 
-static void write_loccode(int lidx)
+static void write_loccode(int locmembers)
 {
-	if (tinyfile) {
-		fprintf(tinyfile, "%%%s:%s\n", loc_rec.locname, loc_rec.member[lidx]);
+	int lidx;
+
+	for (lidx = 0 ; lidx < locmembers ; ++lidx) {
+		if (tinyfile) {
+			fprintf(tinyfile, "%%%s:%s\n", loc_rec.locname, loc_rec.member[lidx]);
+		} else if (namedmaster) {
+			int ndots = 0, mask = 0, i;
+			char *s, *suffix;
+
+			/* find the number of dots in the address to determine the mask */
+			for (s = loc_rec.member[lidx] ; (i = *s) != '\0'; ++s)
+				if (i == '.')
+					++ndots;
+
+			switch (ndots) {
+			case 0:
+				mask = 8;
+				suffix = ".0.0.0";
+				break;
+			case 1:
+				mask = 16;
+				suffix = ".0.0";
+				break;
+			case 2:
+				mask = 24;
+				suffix = ".0";
+				break;
+			case 3:
+				mask = 32;
+				suffix = "";
+				break;
+			default:
+				continue;
+			}
+			if (lidx == 0)
+				fprintf(namedmaster, "acl \"loccode_%s\" {\n", loc_rec.locname);
+			if (loc_rec.member[lidx][0] && loc_rec.member[lidx][0] != ':')
+				fprintf(namedmaster, "\t%s%s/%d;\n", loc_rec.member[lidx], suffix, mask);
+			else
+				fprintf(namedmaster, "\tany;\n");
+		}
 	}
+	if (namedmaster)
+		fprintf(namedmaster, "};\n");
 	if (options.ldifname[0])
 		fprintf(ldifout, "\n");
 }
@@ -1137,8 +1359,9 @@ static void read_loccodes(void)
 
 	// We aren't going to warn for zero records here as many installs do
 	// not use location codes at all
-	if ((ldap_count_entries(ldap_con, res) > 0) && tinyfile) {
-		fprintf(tinyfile, "#\n# Location Codes (if any) - generated by ldap2dns v%s - DO NOT EDIT!\n#\n\n", VERSION);
+	if (ldap_count_entries(ldap_con, res) > 0) {
+		if (tinyfile)
+			fprintf(tinyfile, "#\n# Location Codes (if any) - generated by ldap2dns v%s - DO NOT EDIT!\n#\n\n", VERSION);
 	} else {
 		return;
 	}
@@ -1147,13 +1370,10 @@ static void read_loccodes(void)
 		BerElement* ber = NULL;
 		char* attr;
 		char* dn = ldap_get_dn(ldap_con, m);
-		int i, locmembers = 0;
-		char l_members[256][15];
-		//char loc[256][64];
-		char loc[2];
+		int locmembers = 0;
 		char ldif0;
 
-		loc_rec.locname[0] = '\0';
+		memset(&loc_rec, 0, sizeof(loc_rec));
 		if (options.ldifname[0])
 			fprintf(ldifout, "dn: %s\n", dn);
 		for (attr = ldap_first_attribute(ldap_con, m, &ber); attr; attr = ldap_next_attribute(ldap_con, m, ber)) {
@@ -1170,7 +1390,7 @@ static void read_loccodes(void)
 						else if (options.ldifname[0])
 							fprintf(ldifout, "%s: %s\n", attr, loc_rec.locname);
 					} else if (strcasecmp(attr, "DNSipaddr")==0) {
-						for (locmembers = 0; bvals[locmembers] && locmembers<256; locmembers++) {
+						for (locmembers = 0; bvals[locmembers] && locmembers < MAX_LOCMEMBERS; locmembers++) {
 							if (sscanf(bvals[locmembers]->bv_val, "%15s", loc_rec.member[locmembers])!=1)
 								loc_rec.member[locmembers][0] = '\0';
 							else if (options.ldifname[0])
@@ -1184,16 +1404,11 @@ static void read_loccodes(void)
 				ldap_value_free_len(bvals);
 			}
 		}
+		addloc(&loc_rec);
 		ldif0 = options.ldifname[0];
 		if (options.verbose&1)
 			printf("locationcodename: %s (%d members)\n", loc_rec.locname, locmembers);
-		for (i = 0; i<locmembers; i++) {
-			if (i>0)
-				options.ldifname[0] = '\0';
-			write_loccode(i);
-			if (options.ldifname[0])
-				fprintf(ldifout, "\n");
-		}
+		write_loccode(locmembers);
 		options.ldifname[0] = ldif0;
 		free(dn);
 	}
@@ -1276,8 +1491,8 @@ int main(int argc, char** argv)
 {
 	int soa_numzones;
 	int soa_checksum;
-	int old_numzones;
-	int old_checksum;
+	int old_numzones = 0;
+	int old_checksum = 0;
 	int res;
 
 	umask(022);
@@ -1297,6 +1512,8 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
+	if (options.uid && setuid(options.uid) == -1)
+		die_exit("Unable to set userid");
 
 	/* Initialization complete.  If we're in daemon mode, fork and continue */
 	if (options.is_daemon) {
@@ -1308,7 +1525,8 @@ int main(int argc, char** argv)
 		}
 
 		/* lowest priority */
-		nice(19);
+		if (nice(19) == -1)
+			fprintf(stderr, "ldap2dns: warning, unable to nice(19)\n");
 	}
 	set_datadir();
 
@@ -1328,12 +1546,12 @@ int main(int argc, char** argv)
 			sleep(options.update_iv);
 			continue;
 		}
-		calc_checksum(&old_numzones, &old_checksum);
+		calc_checksum(&soa_numzones, &soa_checksum);
 		if (old_numzones!=soa_numzones || old_checksum!=soa_checksum) {
 			if (options.verbose&1)
 				printf("DNSserial has changed in LDAP zone(s)\n");
-			soa_numzones = old_numzones;
-			soa_checksum = old_checksum;
+			old_numzones = soa_numzones;
+			old_checksum = soa_checksum;
 		} else {
 			goto skip;
 		}
@@ -1350,6 +1568,10 @@ int main(int argc, char** argv)
 			die_exit("Unable to open file 'data.temp' for writing");
 		if ( options.output&OUTPUT_DB && !(namedmaster = fopen("named.zones", "w")) )
 			die_exit("Unable to open file 'named.zones' for writing");
+		if (tinyfile)
+			fprintf(tinyfile, "#\n# Automatically generated by ldap2dns v%s - DO NOT EDIT!\n#\n\n", VERSION);
+		else if (namedmaster)
+			fprintf(namedmaster, "#\n# Automatically generated by ldap2dns v%s - DO NOT EDIT!\n#\n\n", VERSION);
 		read_loccodes();
 		read_dnszones();
 		if (namedmaster)
@@ -1363,8 +1585,8 @@ int main(int argc, char** argv)
 		}
 		if (options.ldifname[0] && ldifout)
 			fclose(ldifout);
-		if (options.exec_command[0])
-			system(options.exec_command);
+		if (options.exec_command[0] && system(options.exec_command) == -1)
+			fprintf(stderr, "ldap2dns: warning, unable to system(\"%s\")\n", options.exec_command);
 	    skip:
 		if ( (ldaperr = ldap_unbind_ext_s(ldap_con, NULL, NULL))!=LDAP_SUCCESS )
 			die_ldap(ldaperr);
@@ -1372,6 +1594,33 @@ int main(int argc, char** argv)
 			break;
 		sleep(options.update_iv);
 	}
+
+#ifdef DEBUG
+	/* Debugging - display data from each zone */
+	{
+	int iz, i;
+	struct resourcerecord *rr;
+
+	for (iz = 0 ; iz < nzones ; ++iz) {
+
+		/* Header line - zone (X rr): domain1.com domain2.com ... */
+		printf("zone (%d rr) loc=\"%s\": %s",
+		    zonelist[iz].nrrs,
+		    zonelist[iz].location,
+		    zonelist[iz].domainname[0]);
+		for (i = 1 ; i < MAX_DNSZONENAME ; ++i) {
+			if (zonelist[iz].domainname[i][0] == '\0')
+				break;
+			printf(" %s", zonelist[iz].domainname[i]);
+		}
+		printf("\n");
+
+		/* Resource records - rr: dnsdomainname_of_resource_record */
+		for (i = zonelist[iz].nrrs, rr = &rrlist[zonelist[iz].rrs] ;
+		    i-- ; ++rr)
+			printf("    rr(%s): %s\n", rr->location, rr->dnsdomainname);
+	}
+	}
+#endif /* #ifdef DEBUG */
 	return 0;
 }
-
